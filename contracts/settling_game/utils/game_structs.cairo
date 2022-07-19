@@ -157,7 +157,7 @@ namespace ModuleIds:
     const L03_Buildings = 3
     const L04_Calculator = 4
     const L05_Wonders = 5
-    const L06_Combat = 11  # TODO: Refactor Combat code so this can be 6 to fit in sequence with other contracts
+    const L06_Combat = 6
     const L07_Crypts = 7
     const L08_Crypts_Resources = 8
     const L09_Relics = 12
@@ -243,47 +243,168 @@ namespace ResourceIds:
 end
 
 namespace TroopId:
-    const Watchman = 1
-    const Guard = 2
-    const GuardCaptain = 3
-    const Squire = 4
+    const Skirmisher = 1
+    const Longbow = 2
+    const Crossbow = 3
+    const Pikeman = 4
     const Knight = 5
-    const KnightCommander = 6
-    const Scout = 7
-    const Archer = 8
-    const Sniper = 9
-    const Scorpio = 10
-    const Ballista = 11
-    const Catapult = 12
-    const Apprentice = 13
-    const Mage = 14
-    const Arcanist = 15
-    const GrandMarshal = 16
+    const Paladin = 6
+    const Ballista = 7
+    const Mangonel = 8
+    const Trebuchet = 9
+    const Apprentice = 10
+    const Mage = 11
+    const Arcanist = 12
     # IMPORTANT: if you're adding to this enum
     # make sure the SIZE is one greater than the
     # maximal value; certain algorithms depend on that
-    const SIZE = 17
+    const SIZE = 13
 end
 
 namespace TroopType:
-    const Melee = 1
-    const Ranged = 2
-    const Siege = 3
+    const RangedNormal = 1
+    const RangedMagic = 2
+    const Melee = 3
+    const Siege = 4
 end
 
 struct Troop:
     member id : felt  # TroopId
     member type : felt  # TroopType
     member tier : felt
+    member building : felt  # RealmBuildingsIds
     member agility : felt
     member attack : felt
-    member defense : felt
+    member armor : felt
     member vitality : felt
     member wisdom : felt
 end
 
-# # TODO: add a t4 Troop that's a Character from our Character module;
-# #       it should be optional
+namespace TroopProps:
+    namespace Type:
+        const Skirmisher = TroopType.RangedNormal
+        const Longbow = TroopType.RangedNormal
+        const Crossbow = TroopType.RangedNormal
+        const Pikeman = TroopType.Melee
+        const Knight = TroopType.Melee
+        const Paladin = TroopType.Melee
+        const Ballista = TroopType.Siege
+        const Mangonel = TroopType.Siege
+        const Trebuchet = TroopType.Siege
+        const Apprentice = TroopType.RangedMagic
+        const Mage = TroopType.RangedMagic
+        const Arcanist = TroopType.RangedMagic
+    end
+
+    namespace Tier:
+        const Skirmisher = 1
+        const Longbow = 2
+        const Crossbow = 3
+        const Pikeman = 1
+        const Knight = 2
+        const Paladin = 3
+        const Ballista = 1
+        const Mangonel = 2
+        const Trebuchet = 3
+        const Apprentice = 1
+        const Mage = 2
+        const Arcanist = 3
+    end
+
+    namespace Building:
+        const Skirmisher = RealmBuildingsIds.ArcherTower
+        const Longbow = RealmBuildingsIds.ArcherTower
+        const Crossbow = RealmBuildingsIds.ArcherTower
+        const Pikeman = RealmBuildingsIds.Barracks
+        const Knight = RealmBuildingsIds.Barracks
+        const Paladin = RealmBuildingsIds.Barracks
+        const Ballista = RealmBuildingsIds.Castle
+        const Mangonel = RealmBuildingsIds.Castle
+        const Trebuchet = RealmBuildingsIds.Castle
+        const Apprentice = RealmBuildingsIds.MageTower
+        const Mage = RealmBuildingsIds.MageTower
+        const Arcanist = RealmBuildingsIds.MageTower
+    end
+
+    namespace Agility:
+        const Skirmisher = 2
+        const Longbow = 4
+        const Crossbow = 6
+        const Pikeman = 7
+        const Knight = 9
+        const Paladin = 9
+        const Ballista = 4
+        const Mangonel = 4
+        const Trebuchet = 4
+        const Apprentice = 7
+        const Mage = 7
+        const Arcanist = 7
+    end
+
+    namespace Attack:
+        const Skirmisher = 7
+        const Longbow = 7
+        const Crossbow = 9
+        const Pikeman = 4
+        const Knight = 7
+        const Paladin = 9
+        const Ballista = 11
+        const Mangonel = 10
+        const Trebuchet = 12
+        const Apprentice = 7
+        const Mage = 9
+        const Arcanist = 11
+    end
+
+    namespace Armor:
+        const Skirmisher = 2
+        const Longbow = 3
+        const Crossbow = 4
+        const Pikeman = 5
+        const Knight = 8
+        const Paladin = 9
+        const Ballista = 4
+        const Mangonel = 5
+        const Trebuchet = 6
+        const Apprentice = 2
+        const Mage = 2
+        const Arcanist = 2
+    end
+
+    namespace Vitality:
+        const Skirmisher = 53
+        const Longbow = 53
+        const Crossbow = 53
+        const Pikeman = 53
+        const Knight = 79
+        const Paladin = 106
+        const Ballista = 53
+        const Mangonel = 53
+        const Trebuchet = 53
+        const Apprentice = 53
+        const Mage = 53
+        const Arcanist = 53
+    end
+
+    namespace Wisdom:
+        const Skirmisher = 2
+        const Longbow = 3
+        const Crossbow = 4
+        const Pikeman = 1
+        const Knight = 2
+        const Paladin = 3
+        const Ballista = 2
+        const Mangonel = 3
+        const Trebuchet = 4
+        const Apprentice = 8
+        const Mage = 9
+        const Arcanist = 10
+    end
+end
+
+# one packed troop fits into 2 bytes (troop ID + vitality)
+# one felt is ~31 bytes -> can hold 15 troops
+# ==> the whole Squad can be packed into a single felt
 struct Squad:
     # tier 1 troops
     member t1_1 : Troop
@@ -295,13 +416,6 @@ struct Squad:
     member t1_7 : Troop
     member t1_8 : Troop
     member t1_9 : Troop
-    member t1_10 : Troop
-    member t1_11 : Troop
-    member t1_12 : Troop
-    member t1_13 : Troop
-    member t1_14 : Troop
-    member t1_15 : Troop
-    member t1_16 : Troop
 
     # tier 2 troops
     member t2_1 : Troop
@@ -309,26 +423,15 @@ struct Squad:
     member t2_3 : Troop
     member t2_4 : Troop
     member t2_5 : Troop
-    member t2_6 : Troop
-    member t2_7 : Troop
-    member t2_8 : Troop
 
     # tier 3 troop
     member t3_1 : Troop
 end
 
-struct PackedSquad:
-    # one packed troop fits into 2 bytes (troop ID + vitality)
-    # one felt is ~31 bytes -> can hold 15 troops
-    # a squad has 25 troops -> fits into 2 felts when packed
-    member p1 : felt  # packed Troops t1_1 ... t1_15
-    member p2 : felt  # packed Troops t1_16 ... t3_1
-end
-
 struct SquadStats:
     member agility : felt
     member attack : felt
-    member defense : felt
+    member armor : felt
     member vitality : felt
     member wisdom : felt
 end
@@ -337,8 +440,8 @@ end
 # a Realm can have two squads, one used for attacking
 # and another used for defending; this struct holds them
 struct RealmCombatData:
-    member attacking_squad : PackedSquad
-    member defending_squad : PackedSquad
+    member attacking_squad : felt  # packed Squad
+    member defending_squad : felt  # packed Squad
     member last_attacked_at : felt
 end
 

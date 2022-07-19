@@ -102,7 +102,6 @@ namespace Module:
         let (caller) = get_caller_address()
         let (controller) = module_controller_address.read()
         let (address) = IModuleController.get_external_contract_address(controller, name_space)
-
         let (owner) = IERC721.ownerOf(address, asset_id)
 
         with_attr error_message("ERC721_ERROR: Not your asset"):

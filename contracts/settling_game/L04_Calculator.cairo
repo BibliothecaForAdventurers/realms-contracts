@@ -35,7 +35,7 @@ from contracts.settling_game.interfaces.imodules import (
 )
 from contracts.settling_game.library.library_module import Module
 from contracts.settling_game.library.library_calculator import Calculator
-from contracts.settling_game.library.library_combat import COMBAT
+from contracts.settling_game.library.library_combat import Combat
 
 # -----------------------------------
 # Initialize & upgrade
@@ -105,8 +105,8 @@ func calculate_troop_population{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*
     #     combat_logic, token_id
     # )
 
-    # let (attacking_population) = COMBAT.get_troop_population(realm_combat_data.attacking_squad)
-    # let (defending_population) = COMBAT.get_troop_population(realm_combat_data.defending_squad)
+    # let (attacking_population) = Combat.get_troop_population(realm_combat_data.attacking_squad)
+    # let (defending_population) = Combat.get_troop_population(realm_combat_data.defending_squad)
 
     return (0)
 end

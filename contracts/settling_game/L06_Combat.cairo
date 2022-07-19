@@ -24,7 +24,7 @@ from contracts.settling_game.interfaces.imodules import (
 )
 from contracts.settling_game.interfaces.realms_IERC721 import realms_IERC721
 from contracts.settling_game.interfaces.ixoroshiro import IXoroshiro
-from contracts.settling_game.library.library_combat import COMBAT
+from contracts.settling_game.library.library_combat import Combat
 
 from contracts.settling_game.utils.game_structs import (
     ModuleIds,
@@ -33,7 +33,6 @@ from contracts.settling_game.utils.game_structs import (
     Troop,
     Squad,
     SquadStats,
-    PackedSquad,
     Cost,
     ExternalContractIds,
 )
@@ -107,7 +106,7 @@ end
 const ATTACK_COOLDOWN_PERIOD = DAY  # 1 day unit
 
 # sets the attack type when initiating combat
-const COMBAT_TYPE_ATTACK_VS_DEFENSE = 1
+const COMBAT_TYPE_ATTACK_VS_ARMOR = 1
 const COMBAT_TYPE_WISDOM_VS_AGILITY = 2
 
 # used to signal which side won the battle
@@ -160,9 +159,6 @@ func build_squad_from_troops_in_realm{
 }(troop_ids_len : felt, troop_ids : felt*, realm_id : Uint256, slot : felt):
     alloc_locals
 
-    let (caller) = get_caller_address()
-    let (controller) = Module.controller_address()
-
     Module.ERC721_owner_check(realm_id, ExternalContractIds.S_Realms)
 
     # get the Cost for every Troop to build
@@ -177,6 +173,8 @@ func build_squad_from_troops_in_realm{
     )
 
     # pay for the squad
+    let (caller) = get_caller_address()
+    let (controller) = Module.controller_address()
     let (resource_address) = IModuleController.get_external_contract_address(
         controller, ExternalContractIds.Resources
     )
@@ -185,11 +183,11 @@ func build_squad_from_troops_in_realm{
     # assemble the squad, store it in a Realm
     let (realm_combat_data : RealmCombatData) = get_realm_combat_data(realm_id)
     if slot == ATTACKING_SQUAD_SLOT:
-        let current_squad : Squad = COMBAT.unpack_squad(realm_combat_data.attacking_squad)
+        let current_squad : Squad = Combat.unpack_squad(realm_combat_data.attacking_squad)
     else:
-        let current_squad : Squad = COMBAT.unpack_squad(realm_combat_data.defending_squad)
+        let current_squad : Squad = Combat.unpack_squad(realm_combat_data.defending_squad)
     end
-    let (squad) = COMBAT.add_troops_to_squad(current_squad, troop_ids_len, troop_ids)
+    let (squad) = Combat.add_troops_to_squad(current_squad, troop_ids_len, troop_ids)
     update_squad_in_realm(squad, realm_id, slot)
 
     BuildTroops_2.emit(squad, troop_ids_len, troop_ids, realm_id, slot)
@@ -203,7 +201,7 @@ func initiate_combat{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : HashBu
 ) -> (combat_outcome : felt):
     alloc_locals
 
-    with_attr error_message("COMBAT: Cannot initiate combat"):
+    with_attr error_message("Combat: Cannot initiate combat"):
         Module.ERC721_owner_check(attacking_realm_id, ExternalContractIds.S_Realms)
         let (can_attack) = Realm_can_be_attacked(attacking_realm_id, defending_realm_id)
         assert can_attack = TRUE
@@ -212,8 +210,8 @@ func initiate_combat{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : HashBu
     let (attacking_realm_data : RealmCombatData) = get_realm_combat_data(attacking_realm_id)
     let (defending_realm_data : RealmCombatData) = get_realm_combat_data(defending_realm_id)
 
-    let (attacker : Squad) = COMBAT.unpack_squad(attacking_realm_data.attacking_squad)
-    let (defender : Squad) = COMBAT.unpack_squad(defending_realm_data.defending_squad)
+    let (attacker : Squad) = Combat.unpack_squad(attacking_realm_data.attacking_squad)
+    let (defender : Squad) = Combat.unpack_squad(defending_realm_data.defending_squad)
 
     # EMIT FIRST
     CombatStart_2.emit(attacking_realm_id, defending_realm_id, attacker, defender)
@@ -224,8 +222,8 @@ func initiate_combat{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : HashBu
         attacking_realm_id, defending_realm_id, attacker_breached_wall, defender, attack_type
     )
 
-    let (new_attacker : PackedSquad) = COMBAT.pack_squad(attacker_end)
-    let (new_defender : PackedSquad) = COMBAT.pack_squad(defender_end)
+    let (new_attacker : felt) = Combat.pack_squad(attacker_end)
+    let (new_defender : felt) = Combat.pack_squad(defender_end)
 
     let new_attacking_realm_data = RealmCombatData(
         attacking_squad=new_attacker,
@@ -242,8 +240,8 @@ func initiate_combat{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : HashBu
     )
     set_realm_combat_data(defending_realm_id, new_defending_realm_data)
 
-    let (attacker_after_combat : Squad) = COMBAT.unpack_squad(new_attacker)
-    let (defender_after_combat : Squad) = COMBAT.unpack_squad(new_defender)
+    let (attacker_after_combat : Squad) = Combat.unpack_squad(new_attacker)
+    let (defender_after_combat : Squad) = Combat.unpack_squad(new_defender)
 
     # # pillaging only if attacker wins
     if combat_outcome == COMBAT_OUTCOME_ATTACKER_WINS:
@@ -288,12 +286,12 @@ func remove_troops_from_squad_in_realm{
     let (realm_combat_data : RealmCombatData) = get_realm_combat_data(realm_id)
 
     if slot == ATTACKING_SQUAD_SLOT:
-        let (squad) = COMBAT.unpack_squad(realm_combat_data.attacking_squad)
+        let (squad) = Combat.unpack_squad(realm_combat_data.attacking_squad)
     else:
-        let (squad) = COMBAT.unpack_squad(realm_combat_data.defending_squad)
+        let (squad) = Combat.unpack_squad(realm_combat_data.defending_squad)
     end
 
-    let (updated_squad) = COMBAT.remove_troops_from_squad(squad, troop_idxs_len, troop_idxs)
+    let (updated_squad) = Combat.remove_troops_from_squad(squad, troop_idxs_len, troop_idxs)
     update_squad_in_realm(updated_squad, realm_id, slot)
 
     return ()
@@ -331,7 +329,7 @@ func inflict_wall_defense{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : H
         tempvar hit_points = MAX_WALL_DEFENSE_HIT_POINTS
     end
 
-    let (damaged : Squad) = hit_squad(attacker, hit_points)
+    let (damaged : Squad) = Combat.hit_squad(attacker, hit_points)
     return (damaged)
 end
 
@@ -348,7 +346,7 @@ func run_combat_loop{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : HashBu
         attacking_realm_id, defending_realm_id, attacker, defender, attack_type
     )
 
-    let (defender_vitality) = COMBAT.compute_squad_vitality(step_defender)
+    let (defender_vitality) = Combat.compute_squad_vitality(step_defender)
     if defender_vitality == 0:
         # defender is defeated
         return (attacker, step_defender, COMBAT_OUTCOME_ATTACKER_WINS)
@@ -357,7 +355,7 @@ func run_combat_loop{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : HashBu
     let (step_attacker) = attack(
         attacking_realm_id, defending_realm_id, step_defender, attacker, attack_type
     )
-    let (attacker_vitality) = COMBAT.compute_squad_vitality(step_attacker)
+    let (attacker_vitality) = Combat.compute_squad_vitality(step_attacker)
     if attacker_vitality == 0:
         # attacker is defeated
         return (step_attacker, step_defender, COMBAT_OUTCOME_DEFENDER_WINS)
@@ -377,13 +375,13 @@ func attack{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : HashBuiltin*}(
 ) -> (d_after_attack : Squad):
     alloc_locals
 
-    let (a_stats) = COMBAT.compute_squad_stats(a)
-    let (d_stats) = COMBAT.compute_squad_stats(d)
+    let (a_stats) = Combat.compute_squad_stats(a)
+    let (d_stats) = Combat.compute_squad_stats(d)
 
-    if attack_type == COMBAT_TYPE_ATTACK_VS_DEFENSE:
-        # attacker attacks with attack against defense,
+    if attack_type == COMBAT_TYPE_ATTACK_VS_ARMOR:
+        # attacker attacks with attack against armor,
         # has attack-times dice rolls
-        let (min_roll_to_hit) = compute_min_roll_to_hit(a_stats.attack, d_stats.defense)
+        let (min_roll_to_hit) = compute_min_roll_to_hit(a_stats.attack, d_stats.armor)
         let (hit_points) = roll_attack_dice(a_stats.attack, min_roll_to_hit, 0)
         tempvar range_check_ptr = range_check_ptr
         tempvar syscall_ptr : felt* = syscall_ptr
@@ -403,7 +401,7 @@ func attack{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : HashBuiltin*}(
     tempvar syscall_ptr = syscall_ptr
     tempvar pedersen_ptr = pedersen_ptr
 
-    let (d_after_attack) = hit_squad(d, hit_points)
+    let (d_after_attack) = Combat.hit_squad(d, hit_points)
     CombatStep_2.emit(
         attacking_realm_id, defending_realm_id, a, d_after_attack, attack_type, hit_points
     )
@@ -454,97 +452,6 @@ func roll_attack_dice{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : HashB
     return roll_attack_dice(dice_count - 1, hit_threshold, successful_hits_acc + is_successful_hit)
 end
 
-func hit_squad{range_check_ptr}(s : Squad, hits : felt) -> (squad : Squad):
-    alloc_locals
-
-    let (t1_1, remaining_hits) = hit_troop(s.t1_1, hits)
-    let (t1_2, remaining_hits) = hit_troop(s.t1_2, remaining_hits)
-    let (t1_3, remaining_hits) = hit_troop(s.t1_3, remaining_hits)
-    let (t1_4, remaining_hits) = hit_troop(s.t1_4, remaining_hits)
-    let (t1_5, remaining_hits) = hit_troop(s.t1_5, remaining_hits)
-    let (t1_6, remaining_hits) = hit_troop(s.t1_6, remaining_hits)
-    let (t1_7, remaining_hits) = hit_troop(s.t1_7, remaining_hits)
-    let (t1_8, remaining_hits) = hit_troop(s.t1_8, remaining_hits)
-    let (t1_9, remaining_hits) = hit_troop(s.t1_9, remaining_hits)
-    let (t1_10, remaining_hits) = hit_troop(s.t1_10, remaining_hits)
-    let (t1_11, remaining_hits) = hit_troop(s.t1_11, remaining_hits)
-    let (t1_12, remaining_hits) = hit_troop(s.t1_12, remaining_hits)
-    let (t1_13, remaining_hits) = hit_troop(s.t1_13, remaining_hits)
-    let (t1_14, remaining_hits) = hit_troop(s.t1_14, remaining_hits)
-    let (t1_15, remaining_hits) = hit_troop(s.t1_15, remaining_hits)
-    let (t1_16, remaining_hits) = hit_troop(s.t1_16, remaining_hits)
-
-    let (t2_1, remaining_hits) = hit_troop(s.t2_1, remaining_hits)
-    let (t2_2, remaining_hits) = hit_troop(s.t2_2, remaining_hits)
-    let (t2_3, remaining_hits) = hit_troop(s.t2_3, remaining_hits)
-    let (t2_4, remaining_hits) = hit_troop(s.t2_4, remaining_hits)
-    let (t2_5, remaining_hits) = hit_troop(s.t2_5, remaining_hits)
-    let (t2_6, remaining_hits) = hit_troop(s.t2_6, remaining_hits)
-    let (t2_7, remaining_hits) = hit_troop(s.t2_7, remaining_hits)
-    let (t2_8, remaining_hits) = hit_troop(s.t2_8, remaining_hits)
-
-    let (t3_1, _) = hit_troop(s.t3_1, remaining_hits)
-
-    let s = Squad(
-        t1_1=t1_1,
-        t1_2=t1_2,
-        t1_3=t1_3,
-        t1_4=t1_4,
-        t1_5=t1_5,
-        t1_6=t1_6,
-        t1_7=t1_7,
-        t1_8=t1_8,
-        t1_9=t1_9,
-        t1_10=t1_10,
-        t1_11=t1_11,
-        t1_12=t1_12,
-        t1_13=t1_13,
-        t1_14=t1_14,
-        t1_15=t1_15,
-        t1_16=t1_16,
-        t2_1=t2_1,
-        t2_2=t2_2,
-        t2_3=t2_3,
-        t2_4=t2_4,
-        t2_5=t2_5,
-        t2_6=t2_6,
-        t2_7=t2_7,
-        t2_8=t2_8,
-        t3_1=t3_1,
-    )
-
-    return (s)
-end
-
-func hit_troop{range_check_ptr}(t : Troop, hits : felt) -> (
-    hit_troop : Troop, remaining_hits : felt
-):
-    if hits == 0:
-        return (t, 0)
-    end
-
-    let (kills_troop) = is_le(t.vitality, hits)
-    if kills_troop == 1:
-        # t.vitality <= hits
-        let ht = Troop(id=0, type=0, tier=0, agility=0, attack=0, defense=0, vitality=0, wisdom=0)
-        let rem = hits - t.vitality
-        return (ht, rem)
-    else:
-        # t.vitality > hits
-        let ht = Troop(
-            id=t.id,
-            type=t.type,
-            tier=t.tier,
-            agility=t.agility,
-            attack=t.attack,
-            defense=t.defense,
-            vitality=t.vitality - hits,
-            wisdom=t.wisdom,
-        )
-        return (ht, 0)
-    end
-end
-
 func load_troop_costs{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
     troop_ids_len : felt, troop_ids : felt*, costs_idx : felt, costs : Cost*
 ):
@@ -569,7 +476,7 @@ func update_squad_in_realm{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : 
     Module.ERC721_owner_check(realm_id, ExternalContractIds.S_Realms)
 
     let (realm_combat_data : RealmCombatData) = get_realm_combat_data(realm_id)
-    let (packed_squad : PackedSquad) = COMBAT.pack_squad(s)
+    let (packed_squad : felt) = Combat.pack_squad(s)
 
     if slot == ATTACKING_SQUAD_SLOT:
         let new_realm_combat_data = RealmCombatData(
@@ -602,8 +509,8 @@ func view_troops{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : HashBuilti
 
     let (realm_data : RealmCombatData) = get_realm_combat_data(realm_id)
 
-    let (attacking_squad : Squad) = COMBAT.unpack_squad(realm_data.attacking_squad)
-    let (defending_squad : Squad) = COMBAT.unpack_squad(realm_data.defending_squad)
+    let (attacking_squad : Squad) = Combat.unpack_squad(realm_data.attacking_squad)
+    let (defending_squad : Squad) = Combat.unpack_squad(realm_data.defending_squad)
 
     return (attacking_squad, defending_squad)
 end
@@ -618,7 +525,7 @@ end
 
 @view
 func get_troop{range_check_ptr, bitwise_ptr : BitwiseBuiltin*}(troop_id : felt) -> (t : Troop):
-    let (t : Troop) = COMBAT.get_troop_internal(troop_id)
+    let (t : Troop) = Combat.get_troop_internal(troop_id)
     return (t)
 end
 

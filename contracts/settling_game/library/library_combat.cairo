@@ -8,79 +8,68 @@ from starkware.cairo.common.math import (
     split_int,
     unsigned_div_rem,
 )
+from starkware.cairo.common.math_cmp import is_le
 from starkware.cairo.common.memcpy import memcpy
 from starkware.cairo.common.memset import memset
 from starkware.cairo.common.registers import get_label_location
 from starkware.cairo.lang.compiler.lib.registers import get_fp_and_pc
 
 from contracts.settling_game.utils.game_structs import (
+    RealmBuildingsIds,
     Squad,
-    PackedSquad,
     SquadStats,
     Troop,
     TroopType,
     TroopId,
+    TroopProps,
 )
 
 # used for packing
 const SHIFT = 0x100
 
-namespace COMBAT:
+namespace Combat:
     func compute_squad_stats(s : Squad) -> (stats : SquadStats):
         let agility = s.t1_1.agility + s.t1_2.agility + s.t1_3.agility + s.t1_4.agility +
             s.t1_5.agility + s.t1_6.agility + s.t1_7.agility + s.t1_8.agility + s.t1_9.agility +
-            s.t1_10.agility + s.t1_11.agility + s.t1_12.agility + s.t1_13.agility + s.t1_14.agility +
-            s.t1_15.agility + s.t1_16.agility + s.t2_1.agility + s.t2_2.agility + s.t2_3.agility +
-            s.t2_4.agility + s.t2_5.agility + s.t2_6.agility + s.t2_7.agility + s.t2_8.agility +
+            s.t2_1.agility + s.t2_2.agility + s.t2_3.agility + s.t2_4.agility + s.t2_5.agility +
             s.t3_1.agility
 
         let attack = s.t1_1.attack + s.t1_2.attack + s.t1_3.attack + s.t1_4.attack +
             s.t1_5.attack + s.t1_6.attack + s.t1_7.attack + s.t1_8.attack + s.t1_9.attack +
-            s.t1_10.attack + s.t1_11.attack + s.t1_12.attack + s.t1_13.attack + s.t1_14.attack +
-            s.t1_15.attack + s.t1_16.attack + s.t2_1.attack + s.t2_2.attack + s.t2_3.attack +
-            s.t2_4.attack + s.t2_5.attack + s.t2_6.attack + s.t2_7.attack + s.t2_8.attack +
+            s.t2_1.attack + s.t2_2.attack + s.t2_3.attack + s.t2_4.attack + s.t2_5.attack +
             s.t3_1.attack
 
-        let defense = s.t1_1.defense + s.t1_2.defense + s.t1_3.defense + s.t1_4.defense +
-            s.t1_5.defense + s.t1_6.defense + s.t1_7.defense + s.t1_8.defense + s.t1_9.defense +
-            s.t1_10.defense + s.t1_11.defense + s.t1_12.defense + s.t1_13.defense + s.t1_14.defense +
-            s.t1_15.defense + s.t1_16.defense + s.t2_1.defense + s.t2_2.defense + s.t2_3.defense +
-            s.t2_4.defense + s.t2_5.defense + s.t2_6.defense + s.t2_7.defense + s.t2_8.defense +
-            s.t3_1.defense
+        let armor = s.t1_1.armor + s.t1_2.armor + s.t1_3.armor + s.t1_4.armor +
+            s.t1_5.armor + s.t1_6.armor + s.t1_7.armor + s.t1_8.armor + s.t1_9.armor +
+            s.t2_1.armor + s.t2_2.armor + s.t2_3.armor + s.t2_4.armor + s.t2_5.armor +
+            s.t3_1.armor
 
         let vitality = s.t1_1.vitality + s.t1_2.vitality + s.t1_3.vitality + s.t1_4.vitality +
             s.t1_5.vitality + s.t1_6.vitality + s.t1_7.vitality + s.t1_8.vitality + s.t1_9.vitality +
-            s.t1_10.vitality + s.t1_11.vitality + s.t1_12.vitality + s.t1_13.vitality + s.t1_14.vitality +
-            s.t1_15.vitality + s.t1_16.vitality + s.t2_1.vitality + s.t2_2.vitality + s.t2_3.vitality +
-            s.t2_4.vitality + s.t2_5.vitality + s.t2_6.vitality + s.t2_7.vitality + s.t2_8.vitality +
+            s.t2_1.vitality + s.t2_2.vitality + s.t2_3.vitality + s.t2_4.vitality + s.t2_5.vitality +
             s.t3_1.vitality
 
         let wisdom = s.t1_1.wisdom + s.t1_2.wisdom + s.t1_3.wisdom + s.t1_4.wisdom +
             s.t1_5.wisdom + s.t1_6.wisdom + s.t1_7.wisdom + s.t1_8.wisdom + s.t1_9.wisdom +
-            s.t1_10.wisdom + s.t1_11.wisdom + s.t1_12.wisdom + s.t1_13.wisdom + s.t1_14.wisdom +
-            s.t1_15.wisdom + s.t1_16.wisdom + s.t2_1.wisdom + s.t2_2.wisdom + s.t2_3.wisdom +
-            s.t2_4.wisdom + s.t2_5.wisdom + s.t2_6.wisdom + s.t2_7.wisdom + s.t2_8.wisdom +
+            s.t2_1.wisdom + s.t2_2.wisdom + s.t2_3.wisdom + s.t2_4.wisdom + s.t2_5.wisdom +
             s.t3_1.wisdom
 
         return (
-            SquadStats(agility=agility, attack=attack, defense=defense, vitality=vitality, wisdom=wisdom),
+            SquadStats(agility=agility, attack=attack, armor=armor, vitality=vitality, wisdom=wisdom),
         )
     end
 
     func compute_squad_vitality(s : Squad) -> (vitality : felt):
         let vitality = s.t1_1.vitality + s.t1_2.vitality + s.t1_3.vitality + s.t1_4.vitality +
             s.t1_5.vitality + s.t1_6.vitality + s.t1_7.vitality + s.t1_8.vitality + s.t1_9.vitality +
-            s.t1_10.vitality + s.t1_11.vitality + s.t1_12.vitality + s.t1_13.vitality + s.t1_14.vitality +
-            s.t1_15.vitality + s.t1_16.vitality + s.t2_1.vitality + s.t2_2.vitality + s.t2_3.vitality +
-            s.t2_4.vitality + s.t2_5.vitality + s.t2_6.vitality + s.t2_7.vitality + s.t2_8.vitality +
+            s.t2_1.vitality + s.t2_2.vitality + s.t2_3.vitality + s.t2_4.vitality + s.t2_5.vitality +
             s.t3_1.vitality
         return (vitality)
     end
 
-    func pack_squad{range_check_ptr}(s : Squad) -> (p : PackedSquad):
+    func pack_squad{range_check_ptr}(s : Squad) -> (p : felt):
         alloc_locals
 
-        # p1
         let (pt1_1) = pack_troop(s.t1_1)
         let (pt1_2) = pack_troop(s.t1_2)
         let (pt1_3) = pack_troop(s.t1_3)
@@ -90,14 +79,16 @@ namespace COMBAT:
         let (pt1_7) = pack_troop(s.t1_7)
         let (pt1_8) = pack_troop(s.t1_8)
         let (pt1_9) = pack_troop(s.t1_9)
-        let (pt1_10) = pack_troop(s.t1_10)
-        let (pt1_11) = pack_troop(s.t1_11)
-        let (pt1_12) = pack_troop(s.t1_12)
-        let (pt1_13) = pack_troop(s.t1_13)
-        let (pt1_14) = pack_troop(s.t1_14)
-        let (pt1_15) = pack_troop(s.t1_15)
 
-        let p1 = (
+        let (pt2_1) = pack_troop(s.t2_1)
+        let (pt2_2) = pack_troop(s.t2_2)
+        let (pt2_3) = pack_troop(s.t2_3)
+        let (pt2_4) = pack_troop(s.t2_4)
+        let (pt2_5) = pack_troop(s.t2_5)
+
+        let (pt3_1) = pack_troop(s.t3_1)
+
+        let packed = (
             pt1_1 +
             (pt1_2 * (SHIFT ** 2)) +
             (pt1_3 * (SHIFT ** 4)) +
@@ -107,80 +98,42 @@ namespace COMBAT:
             (pt1_7 * (SHIFT ** 12)) +
             (pt1_8 * (SHIFT ** 14)) +
             (pt1_9 * (SHIFT ** 16)) +
-            (pt1_10 * (SHIFT ** 18)) +
-            (pt1_11 * (SHIFT ** 20)) +
-            (pt1_12 * (SHIFT ** 22)) +
-            (pt1_13 * (SHIFT ** 24)) +
-            (pt1_14 * (SHIFT ** 26)) +
-            (pt1_15 * (SHIFT ** 28)))
+            (pt2_1 * (SHIFT ** 18)) +
+            (pt2_2 * (SHIFT ** 20)) +
+            (pt2_3 * (SHIFT ** 22)) +
+            (pt2_4 * (SHIFT ** 24)) +
+            (pt2_5 * (SHIFT ** 26)) +
+            (pt3_1 * (SHIFT ** 28)))
 
-        # p2
-        let (pt1_16) = pack_troop(s.t1_16)
-        let (pt2_1) = pack_troop(s.t2_1)
-        let (pt2_2) = pack_troop(s.t2_2)
-        let (pt2_3) = pack_troop(s.t2_3)
-        let (pt2_4) = pack_troop(s.t2_4)
-        let (pt2_5) = pack_troop(s.t2_5)
-        let (pt2_6) = pack_troop(s.t2_6)
-        let (pt2_7) = pack_troop(s.t2_7)
-        let (pt2_8) = pack_troop(s.t2_8)
-        let (pt3_1) = pack_troop(s.t3_1)
-
-        let p2 = (
-            pt1_16 +
-            (pt2_1 * (SHIFT ** 2)) +
-            (pt2_2 * (SHIFT ** 4)) +
-            (pt2_3 * (SHIFT ** 6)) +
-            (pt2_4 * (SHIFT ** 8)) +
-            (pt2_5 * (SHIFT ** 10)) +
-            (pt2_6 * (SHIFT ** 12)) +
-            (pt2_7 * (SHIFT ** 14)) +
-            (pt2_8 * (SHIFT ** 16)) +
-            (pt3_1 * (SHIFT ** 18)))
-
-        return (PackedSquad(p1=p1, p2=p2))
+        return (packed)
     end
 
-    func unpack_squad{range_check_ptr}(p : PackedSquad) -> (s : Squad):
+    func unpack_squad{range_check_ptr}(p : felt) -> (s : Squad):
         alloc_locals
 
-        let (p1_out : felt*) = alloc()
-        split_int(p.p1, 15, SHIFT ** 2, 2 ** 16, p1_out)
-        let (p2_out : felt*) = alloc()
-        split_int(p.p2, 15, SHIFT ** 2, 2 ** 16, p2_out)
+        let (p_out : felt*) = alloc()
+        split_int(p, 15, SHIFT ** 2, 2 ** 16, p_out)
 
-        let (t1_1) = unpack_troop([p1_out])
-        let (t1_2) = unpack_troop([p1_out + 1])
-        let (t1_3) = unpack_troop([p1_out + 2])
-        let (t1_4) = unpack_troop([p1_out + 3])
-        let (t1_5) = unpack_troop([p1_out + 4])
-        let (t1_6) = unpack_troop([p1_out + 5])
-        let (t1_7) = unpack_troop([p1_out + 6])
-        let (t1_8) = unpack_troop([p1_out + 7])
-        let (t1_9) = unpack_troop([p1_out + 8])
-        let (t1_10) = unpack_troop([p1_out + 9])
-        let (t1_11) = unpack_troop([p1_out + 10])
-        let (t1_12) = unpack_troop([p1_out + 11])
-        let (t1_13) = unpack_troop([p1_out + 12])
-        let (t1_14) = unpack_troop([p1_out + 13])
-        let (t1_15) = unpack_troop([p1_out + 14])
-
-        let (t1_16) = unpack_troop([p2_out])
-        let (t2_1) = unpack_troop([p2_out + 1])
-        let (t2_2) = unpack_troop([p2_out + 2])
-        let (t2_3) = unpack_troop([p2_out + 3])
-        let (t2_4) = unpack_troop([p2_out + 4])
-        let (t2_5) = unpack_troop([p2_out + 5])
-        let (t2_6) = unpack_troop([p2_out + 6])
-        let (t2_7) = unpack_troop([p2_out + 7])
-        let (t2_8) = unpack_troop([p2_out + 8])
-        let (t3_1) = unpack_troop([p2_out + 9])
+        let (t1_1) = unpack_troop([p_out])
+        let (t1_2) = unpack_troop([p_out + 1])
+        let (t1_3) = unpack_troop([p_out + 2])
+        let (t1_4) = unpack_troop([p_out + 3])
+        let (t1_5) = unpack_troop([p_out + 4])
+        let (t1_6) = unpack_troop([p_out + 5])
+        let (t1_7) = unpack_troop([p_out + 6])
+        let (t1_8) = unpack_troop([p_out + 7])
+        let (t1_9) = unpack_troop([p_out + 8])
+        let (t2_1) = unpack_troop([p_out + 9])
+        let (t2_2) = unpack_troop([p_out + 10])
+        let (t2_3) = unpack_troop([p_out + 11])
+        let (t2_4) = unpack_troop([p_out + 12])
+        let (t2_5) = unpack_troop([p_out + 13])
+        let (t3_1) = unpack_troop([p_out + 14])
 
         return (
-            Squad(t1_1=t1_1, t1_2=t1_2, t1_3=t1_3, t1_4=t1_4, t1_5=t1_5, t1_6=t1_6,
-            t1_7=t1_7, t1_8=t1_8, t1_9=t1_9, t1_10=t1_10, t1_11=t1_11, t1_12=t1_12,
-            t1_13=t1_13, t1_14=t1_14, t1_15=t1_15, t1_16=t1_16, t2_1=t2_1, t2_2=t2_2,
-            t2_3=t2_3, t2_4=t2_4, t2_5=t2_5, t2_6=t2_6, t2_7=t2_7, t2_8=t2_8, t3_1=t3_1),
+            Squad(t1_1=t1_1, t1_2=t1_2, t1_3=t1_3, t1_4=t1_4, t1_5=t1_5,
+            t1_6=t1_6, t1_7=t1_7, t1_8=t1_8, t1_9=t1_9, t2_1=t2_1, t2_2=t2_2,
+            t2_3=t2_3, t2_4=t2_4, t2_5=t2_5, t3_1=t3_1),
         )
     end
 
@@ -193,25 +146,25 @@ namespace COMBAT:
 
     func unpack_troop{range_check_ptr}(packed : felt) -> (t : Troop):
         alloc_locals
+        let (_foo) = alloc()
         let (vitality, troop_id) = unsigned_div_rem(packed, SHIFT)
         if troop_id == 0:
             return (
-                Troop(id=0, type=0, tier=0, agility=0, attack=0, defense=0, vitality=0, wisdom=0)
+                Troop(id=0, type=0, tier=0, building=0, agility=0, attack=0, armor=0, vitality=0, wisdom=0),
             )
         end
-        let (type, tier, agility, attack, defense, _, wisdom) = get_troop_properties(troop_id)
+        let (type, tier, building, agility, attack, armor, _, wisdom) = get_troop_properties(
+            troop_id
+        )
 
         return (
-            Troop(id=troop_id, type=type, tier=tier, agility=agility, attack=attack, defense=defense, vitality=vitality, wisdom=wisdom),
+            Troop(id=troop_id, type=type, tier=tier, building=building,
+            agility=agility, attack=attack, armor=armor, vitality=vitality, wisdom=wisdom),
         )
     end
 
-    # the values in the tuple this function returns don't change for a Troop,
-    # so we hardcode them in the code and use this function to retrieve them
-    # this way, we don't have to store them on-chain which allows for more efficient
-    # packing (only troop ID and vitality have to be stored)
     func get_troop_properties{range_check_ptr}(troop_id : felt) -> (
-        type, tier, agility, attack, defense, vitality, wisdom
+        type, tier, building, agility, attack, armor, vitality, wisdom
     ):
         assert_not_zero(troop_id)
         assert_lt(troop_id, TroopId.SIZE)
@@ -219,160 +172,149 @@ namespace COMBAT:
         let idx = troop_id - 1
         let (type_label) = get_label_location(troop_types_per_id)
         let (tier_label) = get_label_location(troop_tier_per_id)
+        let (building_label) = get_label_location(troop_building_per_id)
         let (agility_label) = get_label_location(troop_agility_per_id)
         let (attack_label) = get_label_location(troop_attack_per_id)
-        let (defense_label) = get_label_location(troop_defense_per_id)
+        let (armor_label) = get_label_location(troop_armor_per_id)
         let (vitality_label) = get_label_location(troop_vitality_per_id)
         let (wisdom_label) = get_label_location(troop_wisdom_per_id)
 
         return (
             [type_label + idx],
             [tier_label + idx],
+            [building_label + idx],
             [agility_label + idx],
             [attack_label + idx],
-            [defense_label + idx],
+            [armor_label + idx],
             [vitality_label + idx],
             [wisdom_label + idx],
         )
 
         troop_types_per_id:
-        dw TroopType.Melee  # Watchman
-        dw TroopType.Melee  # Guard
-        dw TroopType.Melee  # Guard Captain
-        dw TroopType.Melee  # Squire
-        dw TroopType.Melee  # Knight
-        dw TroopType.Melee  # Knight Commander
-        dw TroopType.Ranged  # Scout
-        dw TroopType.Ranged  # Archer
-        dw TroopType.Ranged  # Sniper
-        dw TroopType.Siege  # Scorpio
-        dw TroopType.Siege  # Ballista
-        dw TroopType.Siege  # Catapult
-        dw TroopType.Ranged  # Apprentice
-        dw TroopType.Ranged  # Mage
-        dw TroopType.Ranged  # Arcanist
-        dw TroopType.Melee  # Grand Marshal
+        dw TroopProps.Type.Skirmisher
+        dw TroopProps.Type.Longbow
+        dw TroopProps.Type.Crossbow
+        dw TroopProps.Type.Pikeman
+        dw TroopProps.Type.Knight
+        dw TroopProps.Type.Paladin
+        dw TroopProps.Type.Ballista
+        dw TroopProps.Type.Mangonel
+        dw TroopProps.Type.Trebuchet
+        dw TroopProps.Type.Apprentice
+        dw TroopProps.Type.Mage
+        dw TroopProps.Type.Arcanist
 
         troop_tier_per_id:
-        dw 1  # Watchman
-        dw 2  # Guard
-        dw 3  # Guard Captain
-        dw 1  # Squire
-        dw 2  # Knight
-        dw 3  # Knight Commander
-        dw 1  # Scout
-        dw 2  # Archer
-        dw 3  # Sniper
-        dw 1  # Scorpio
-        dw 2  # Ballista
-        dw 3  # Catapult
-        dw 1  # Apprentice
-        dw 2  # Mage
-        dw 3  # Arcanist
-        dw 3  # Grand Marshal
+        dw TroopProps.Tier.Skirmisher
+        dw TroopProps.Tier.Longbow
+        dw TroopProps.Tier.Crossbow
+        dw TroopProps.Tier.Pikeman
+        dw TroopProps.Tier.Knight
+        dw TroopProps.Tier.Paladin
+        dw TroopProps.Tier.Ballista
+        dw TroopProps.Tier.Mangonel
+        dw TroopProps.Tier.Trebuchet
+        dw TroopProps.Tier.Apprentice
+        dw TroopProps.Tier.Mage
+        dw TroopProps.Tier.Arcanist
+
+        troop_building_per_id:
+        dw TroopProps.Building.Skirmisher
+        dw TroopProps.Building.Longbow
+        dw TroopProps.Building.Crossbow
+        dw TroopProps.Building.Pikeman
+        dw TroopProps.Building.Knight
+        dw TroopProps.Building.Paladin
+        dw TroopProps.Building.Ballista
+        dw TroopProps.Building.Mangonel
+        dw TroopProps.Building.Trebuchet
+        dw TroopProps.Building.Apprentice
+        dw TroopProps.Building.Mage
+        dw TroopProps.Building.Arcanist
 
         troop_agility_per_id:
-        dw 1  # Watchman
-        dw 2  # Guard
-        dw 4  # Guard Captain
-        dw 1  # Squire
-        dw 2  # Knight
-        dw 4  # Knight Commander
-        dw 4  # Scout
-        dw 8  # Archer
-        dw 16  # Sniper
-        dw 1  # Scorpio
-        dw 2  # Ballista
-        dw 4  # Catapult
-        dw 2  # Apprentice
-        dw 4  # Mage
-        dw 8  # Arcanist
-        dw 16  # Grand Marshal
+        dw TroopProps.Agility.Skirmisher
+        dw TroopProps.Agility.Longbow
+        dw TroopProps.Agility.Crossbow
+        dw TroopProps.Agility.Pikeman
+        dw TroopProps.Agility.Knight
+        dw TroopProps.Agility.Paladin
+        dw TroopProps.Agility.Ballista
+        dw TroopProps.Agility.Mangonel
+        dw TroopProps.Agility.Trebuchet
+        dw TroopProps.Agility.Apprentice
+        dw TroopProps.Agility.Mage
+        dw TroopProps.Agility.Arcanist
 
         troop_attack_per_id:
-        dw 1  # Watchman
-        dw 2  # Guard
-        dw 4  # Guard Captain
-        dw 4  # Squire
-        dw 8  # Knight
-        dw 16  # Knight Commander
-        dw 3  # Scout
-        dw 6  # Archer
-        dw 12  # Sniper
-        dw 4  # Scorpio
-        dw 8  # Ballista
-        dw 16  # Catapult
-        dw 2  # Apprentice
-        dw 4  # Mage
-        dw 8  # Arcanist
-        dw 16  # Grand Marshal
+        dw TroopProps.Attack.Skirmisher
+        dw TroopProps.Attack.Longbow
+        dw TroopProps.Attack.Crossbow
+        dw TroopProps.Attack.Pikeman
+        dw TroopProps.Attack.Knight
+        dw TroopProps.Attack.Paladin
+        dw TroopProps.Attack.Ballista
+        dw TroopProps.Attack.Mangonel
+        dw TroopProps.Attack.Trebuchet
+        dw TroopProps.Attack.Apprentice
+        dw TroopProps.Attack.Mage
+        dw TroopProps.Attack.Arcanist
 
-        troop_defense_per_id:
-        dw 3  # Watchman
-        dw 6  # Guard
-        dw 12  # Guard Captain
-        dw 1  # Squire
-        dw 2  # Knight
-        dw 4  # Knight Commander
-        dw 1  # Scout
-        dw 2  # Archer
-        dw 4  # Sniper
-        dw 1  # Scorpio
-        dw 2  # Ballista
-        dw 4  # Catapult
-        dw 1  # Apprentice
-        dw 2  # Mage
-        dw 4  # Arcanist
-        dw 16  # Grand Marshal
+        troop_armor_per_id:
+        dw TroopProps.Armor.Skirmisher
+        dw TroopProps.Armor.Longbow
+        dw TroopProps.Armor.Crossbow
+        dw TroopProps.Armor.Pikeman
+        dw TroopProps.Armor.Knight
+        dw TroopProps.Armor.Paladin
+        dw TroopProps.Armor.Ballista
+        dw TroopProps.Armor.Mangonel
+        dw TroopProps.Armor.Trebuchet
+        dw TroopProps.Armor.Apprentice
+        dw TroopProps.Armor.Mage
+        dw TroopProps.Armor.Arcanist
 
         troop_vitality_per_id:
-        dw 4  # Watchman
-        dw 8  # Guard
-        dw 16  # Guard Captain
-        dw 1  # Squire
-        dw 2  # Knight
-        dw 4  # Knight Commander
-        dw 1  # Scout
-        dw 2  # Archer
-        dw 4  # Sniper
-        dw 3  # Scorpio
-        dw 6  # Ballista
-        dw 12  # Catapult
-        dw 1  # Apprentice
-        dw 2  # Mage
-        dw 4  # Arcanist
-        dw 16  # Grand Marshal
+        dw TroopProps.Vitality.Skirmisher
+        dw TroopProps.Vitality.Longbow
+        dw TroopProps.Vitality.Crossbow
+        dw TroopProps.Vitality.Pikeman
+        dw TroopProps.Vitality.Knight
+        dw TroopProps.Vitality.Paladin
+        dw TroopProps.Vitality.Ballista
+        dw TroopProps.Vitality.Mangonel
+        dw TroopProps.Vitality.Trebuchet
+        dw TroopProps.Vitality.Apprentice
+        dw TroopProps.Vitality.Mage
+        dw TroopProps.Vitality.Arcanist
 
         troop_wisdom_per_id:
-        dw 1  # Watchman
-        dw 2  # Guard
-        dw 4  # Guard Captain
-        dw 3  # Squire
-        dw 6  # Knight
-        dw 12  # Knight Commander
-        dw 1  # Scout
-        dw 2  # Archer
-        dw 4  # Sniper
-        dw 1  # Scorpio
-        dw 2  # Ballista
-        dw 4  # Catapult
-        dw 4  # Apprentice
-        dw 8  # Mage
-        dw 16  # Arcanist
-        dw 16  # Grand Marshal
+        dw TroopProps.Wisdom.Skirmisher
+        dw TroopProps.Wisdom.Longbow
+        dw TroopProps.Wisdom.Crossbow
+        dw TroopProps.Wisdom.Pikeman
+        dw TroopProps.Wisdom.Knight
+        dw TroopProps.Wisdom.Paladin
+        dw TroopProps.Wisdom.Ballista
+        dw TroopProps.Wisdom.Mangonel
+        dw TroopProps.Wisdom.Trebuchet
+        dw TroopProps.Wisdom.Apprentice
+        dw TroopProps.Wisdom.Mage
+        dw TroopProps.Wisdom.Arcanist
     end
 
     func get_troop_internal{range_check_ptr}(troop_id : felt) -> (t : Troop):
-        with_attr error_message("unknown troop ID"):
+        with_attr error_message("Combat: unknown troop ID"):
             assert_not_zero(troop_id)
             assert_lt(troop_id, TroopId.SIZE)
         end
 
-        let (type, tier, agility, attack, defense, vitality, wisdom) = get_troop_properties(
+        let (type, tier, building, agility, attack, armor, vitality, wisdom) = get_troop_properties(
             troop_id
         )
         return (
-            Troop(id=troop_id, type=type, tier=tier, agility=agility, attack=attack, defense=defense, vitality=vitality, wisdom=wisdom),
+            Troop(id=troop_id, type=type, tier=tier, building=building,
+            agility=agility, attack=attack, armor=armor, vitality=vitality, wisdom=wisdom),
         )
     end
 
@@ -443,63 +385,33 @@ namespace COMBAT:
             if s.t1_9.type == 0:
                 return (Troop.SIZE * 8)
             end
-            if s.t1_10.type == 0:
-                return (Troop.SIZE * 9)
-            end
-            if s.t1_11.type == 0:
-                return (Troop.SIZE * 10)
-            end
-            if s.t1_12.type == 0:
-                return (Troop.SIZE * 11)
-            end
-            if s.t1_13.type == 0:
-                return (Troop.SIZE * 12)
-            end
-            if s.t1_14.type == 0:
-                return (Troop.SIZE * 13)
-            end
-            if s.t1_15.type == 0:
-                return (Troop.SIZE * 14)
-            end
-            if s.t1_16.type == 0:
-                return (Troop.SIZE * 15)
-            end
         end
 
         if tier == 2:
             if s.t2_1.type == 0:
-                return (Troop.SIZE * 16)
+                return (Troop.SIZE * 9)
             end
             if s.t2_2.type == 0:
-                return (Troop.SIZE * 17)
+                return (Troop.SIZE * 10)
             end
             if s.t2_3.type == 0:
-                return (Troop.SIZE * 18)
+                return (Troop.SIZE * 11)
             end
             if s.t2_4.type == 0:
-                return (Troop.SIZE * 19)
+                return (Troop.SIZE * 12)
             end
             if s.t2_5.type == 0:
-                return (Troop.SIZE * 20)
-            end
-            if s.t2_6.type == 0:
-                return (Troop.SIZE * 21)
-            end
-            if s.t2_7.type == 0:
-                return (Troop.SIZE * 22)
-            end
-            if s.t2_8.type == 0:
-                return (Troop.SIZE * 23)
+                return (Troop.SIZE * 13)
             end
         end
 
         if tier == 3:
             if s.t3_1.type == 0:
-                return (Troop.SIZE * 24)
+                return (Troop.SIZE * 14)
             end
         end
 
-        with_attr error_message("no free troop slot in squad"):
+        with_attr error_message("Combat: no free troop slot in squad"):
             assert 1 = 0
         end
 
@@ -534,7 +446,7 @@ namespace COMBAT:
         return remove_troops_from_squad(updated, troop_idxs_len - 1, troop_idxs + 1)
     end
 
-    func get_troop_population{range_check_ptr}(squad : PackedSquad) -> (population : felt):
+    func get_troop_population{range_check_ptr}(squad : felt) -> (population : felt):
         alloc_locals
 
         let (s : Squad) = unpack_squad(squad)
@@ -566,27 +478,6 @@ namespace COMBAT:
         if s.t1_9.id != 0:
             tempvar p = p + 1
         end
-        if s.t1_10.id != 0:
-            tempvar p = p + 1
-        end
-        if s.t1_11.id != 0:
-            tempvar p = p + 1
-        end
-        if s.t1_12.id != 0:
-            tempvar p = p + 1
-        end
-        if s.t1_13.id != 0:
-            tempvar p = p + 1
-        end
-        if s.t1_14.id != 0:
-            tempvar p = p + 1
-        end
-        if s.t1_15.id != 0:
-            tempvar p = p + 1
-        end
-        if s.t1_16.id != 0:
-            tempvar p = p + 1
-        end
         if s.t2_1.id != 0:
             tempvar p = p + 1
         end
@@ -602,19 +493,84 @@ namespace COMBAT:
         if s.t2_5.id != 0:
             tempvar p = p + 1
         end
-        if s.t2_6.id != 0:
-            tempvar p = p + 1
-        end
-        if s.t2_7.id != 0:
-            tempvar p = p + 1
-        end
-        if s.t2_8.id != 0:
-            tempvar p = p + 1
-        end
         if s.t3_1.id != 0:
             tempvar p = p + 1
         end
 
         return (p)
+    end
+
+    func hit_squad{range_check_ptr}(s : Squad, hits : felt) -> (squad : Squad):
+        alloc_locals
+
+        let (t1_1, remaining_hits) = hit_troop(s.t1_1, hits)
+        let (t1_2, remaining_hits) = hit_troop(s.t1_2, remaining_hits)
+        let (t1_3, remaining_hits) = hit_troop(s.t1_3, remaining_hits)
+        let (t1_4, remaining_hits) = hit_troop(s.t1_4, remaining_hits)
+        let (t1_5, remaining_hits) = hit_troop(s.t1_5, remaining_hits)
+        let (t1_6, remaining_hits) = hit_troop(s.t1_6, remaining_hits)
+        let (t1_7, remaining_hits) = hit_troop(s.t1_7, remaining_hits)
+        let (t1_8, remaining_hits) = hit_troop(s.t1_8, remaining_hits)
+        let (t1_9, remaining_hits) = hit_troop(s.t1_9, remaining_hits)
+
+        let (t2_1, remaining_hits) = hit_troop(s.t2_1, remaining_hits)
+        let (t2_2, remaining_hits) = hit_troop(s.t2_2, remaining_hits)
+        let (t2_3, remaining_hits) = hit_troop(s.t2_3, remaining_hits)
+        let (t2_4, remaining_hits) = hit_troop(s.t2_4, remaining_hits)
+        let (t2_5, remaining_hits) = hit_troop(s.t2_5, remaining_hits)
+
+        let (t3_1, _) = hit_troop(s.t3_1, remaining_hits)
+
+        let s = Squad(
+            t1_1=t1_1,
+            t1_2=t1_2,
+            t1_3=t1_3,
+            t1_4=t1_4,
+            t1_5=t1_5,
+            t1_6=t1_6,
+            t1_7=t1_7,
+            t1_8=t1_8,
+            t1_9=t1_9,
+            t2_1=t2_1,
+            t2_2=t2_2,
+            t2_3=t2_3,
+            t2_4=t2_4,
+            t2_5=t2_5,
+            t3_1=t3_1,
+        )
+
+        return (s)
+    end
+
+    func hit_troop{range_check_ptr}(t : Troop, hits : felt) -> (
+        hit_troop : Troop, remaining_hits : felt
+    ):
+        if hits == 0:
+            return (t, 0)
+        end
+
+        let (kills_troop) = is_le(t.vitality, hits)
+        if kills_troop == 1:
+            # t.vitality <= hits
+            let ht = Troop(
+                id=0, type=0, tier=0, building=0, agility=0, attack=0, armor=0, vitality=0, wisdom=0
+            )
+            let rem = hits - t.vitality
+            return (ht, rem)
+        else:
+            # t.vitality > hits
+            let ht = Troop(
+                id=t.id,
+                type=t.type,
+                tier=t.tier,
+                building=t.building,
+                agility=t.agility,
+                attack=t.attack,
+                armor=t.armor,
+                vitality=t.vitality - hits,
+                wisdom=t.wisdom,
+            )
+            return (ht, 0)
+        end
     end
 end

@@ -4,65 +4,59 @@ import struct
 import pytest
 from starkware.starkware_utils.error_handling import StarkException
 
-from .game_structs import Troop, Squad, PackedSquad, ResourceIds, TroopId, TROOP_COSTS
+from .game_structs import Troop, Squad, BuildingId, ResourceIds, TroopId, TroopType, TROOP_COSTS
 
-EMPTY_TROOP = Troop(0, 0, 0, 0, 0, 0, 0, 0)
-WATCHMAN = Troop(TroopId.Watchman, 1, 1, 1, 1, 3, 4, 1)
-GUARD = Troop(TroopId.Guard, 1, 2, 2, 2, 6, 8, 2)
-GUARD_CAPTAIN = Troop(TroopId.GuardCaptain, 1, 3, 4, 4, 12, 16, 4)
-SQUIRE = Troop(TroopId.Squire, 1, 1, 1, 4, 1, 1, 3)
-KNIGHT = Troop(TroopId.Knight, 1, 2, 2, 8, 2, 2, 6)
-KNIGHT_COMMANDER = Troop(TroopId.KnightCommander, 1, 3, 4, 16, 4, 4, 12)
-SCOUT = Troop(TroopId.Scout, 2, 1, 4, 3, 1, 1, 1)
-ARCHER = Troop(TroopId.Archer, 2, 2, 8, 6, 2, 2, 2)
-SNIPER = Troop(TroopId.Sniper, 2, 3, 16, 12, 4, 4, 4)
-SCORPIO = Troop(TroopId.Scorpio, 3, 1, 1, 4, 1, 3, 1)
-BALLISTA = Troop(TroopId.Ballista, 3, 2, 2, 8, 2, 6, 2)
-CATAPULT = Troop(TroopId.Catapult, 3, 3, 4, 16, 4, 12, 4)
-APPRENTICE = Troop(TroopId.Apprentice, 2, 1, 2, 2, 1, 1, 4)
-MAGE = Troop(TroopId.Mage, 2, 2, 4, 4, 2, 2, 8)
-ARCANIST = Troop(TroopId.Arcanist, 2, 3, 8, 8, 4, 4, 16)
-GRAND_MARSHAL = Troop(TroopId.GrandMarshal, 1, 3, 16, 16, 16, 16, 16)
+EMPTY_TROOP = Troop(0, 0, 0, 0, 0, 0, 0, 0, 0)
+SKIRMISHER = Troop(TroopId.Skirmisher, TroopType.RangedNormal, 1, BuildingId.ArcherTower, 2, 7, 2, 53, 2)
+LONGBOW = Troop(TroopId.Longbow, TroopType.RangedNormal, 2, BuildingId.ArcherTower, 4, 7, 3, 53, 3)
+CROSSBOW = Troop(TroopId.Crossbow, TroopType.RangedNormal, 3, BuildingId.ArcherTower, 6, 9, 4, 53, 4)
+PIKEMAN = Troop(TroopId.Pikeman, TroopType.Melee, 1, BuildingId.Barracks, 7, 4, 5, 53, 1)
+KNIGHT = Troop(TroopId.Knight, TroopType.Melee, 2, BuildingId.Barracks, 9, 7, 8, 79, 2)
+PALADIN = Troop(TroopId.Paladin, TroopType.Melee, 3, BuildingId.Barracks, 9, 9, 9, 106, 3)
+BALLISTA = Troop(TroopId.Ballista, TroopType.Siege, 1, BuildingId.Castle, 4, 11, 4, 53, 2)
+MANGONEL = Troop(TroopId.Mangonel, TroopType.Siege, 2, BuildingId.Castle, 4, 10, 5, 53, 3)
+TREBUCHET = Troop(TroopId.Trebuchet, TroopType.Siege, 3, BuildingId.Castle, 4, 12, 6, 53, 4)
+APPRENTICE = Troop(TroopId.Apprentice, TroopType.RangedMagic, 1, BuildingId.MageTower, 7, 7, 2, 53, 8)
+MAGE = Troop(TroopId.Mage, TroopType.RangedMagic, 2, BuildingId.MageTower, 7, 9, 2, 53, 9)
+ARCANIST = Troop(TroopId.Arcanist, TroopType.RangedMagic, 3, BuildingId.MageTower, 7, 11, 2, 53, 10)
+
+
 TROOPS = [
-    WATCHMAN,
-    GUARD,
-    GUARD_CAPTAIN,
-    SQUIRE,
+    SKIRMISHER,
+    LONGBOW,
+    CROSSBOW,
+    PIKEMAN,
     KNIGHT,
-    KNIGHT_COMMANDER,
-    SCOUT,
-    ARCHER,
-    SNIPER,
-    SCORPIO,
+    PALADIN,
     BALLISTA,
-    CATAPULT,
+    MANGONEL,
+    TREBUCHET,
     APPRENTICE,
     MAGE,
     ARCANIST,
-    GRAND_MARSHAL,
 ]
 
 
 def build_default_squad() -> Squad:
-    troops = [WATCHMAN] * 16 + [GUARD] * 8 + [GUARD_CAPTAIN]
+    troops = [PIKEMAN] * 9 + [KNIGHT] * 5 + [PALADIN]
     return Squad(*troops)
 
 
 def build_partial_squad(first_empty_slot: int) -> Squad:
-    troops = [WATCHMAN] * 16 + [GUARD] * 8 + [GUARD_CAPTAIN]
-    empties = [EMPTY_TROOP] * (25 - first_empty_slot)
+    troops = [PIKEMAN] * 9 + [KNIGHT] * 5 + [PALADIN]
+    empties = [EMPTY_TROOP] * (15 - first_empty_slot)
     squad = Squad(*(troops[:first_empty_slot] + empties))
     return squad
 
 
 def build_empty_squad() -> Squad:
-    no_troops = [EMPTY_TROOP] * 25
+    no_troops = [EMPTY_TROOP] * 15
     return Squad(*no_troops)
 
 
-def pack_squad(squad: Squad) -> PackedSquad:
+def pack_squad(squad: Squad) -> int:
     shift = 0x100
-    p1 = (
+    packed = (
         pack_troop(squad.t1_1)
         + pack_troop(squad.t1_2) * shift**2
         + pack_troop(squad.t1_3) * shift**4
@@ -72,28 +66,15 @@ def pack_squad(squad: Squad) -> PackedSquad:
         + pack_troop(squad.t1_7) * shift**12
         + pack_troop(squad.t1_8) * shift**14
         + pack_troop(squad.t1_9) * shift**16
-        + pack_troop(squad.t1_10) * shift**18
-        + pack_troop(squad.t1_11) * shift**20
-        + pack_troop(squad.t1_12) * shift**22
-        + pack_troop(squad.t1_13) * shift**24
-        + pack_troop(squad.t1_14) * shift**26
-        + pack_troop(squad.t1_15) * shift**28
+        + pack_troop(squad.t2_1) * shift**18
+        + pack_troop(squad.t2_2) * shift**20
+        + pack_troop(squad.t2_3) * shift**22
+        + pack_troop(squad.t2_4) * shift**24
+        + pack_troop(squad.t2_5) * shift**26
+        + pack_troop(squad.t3_1) * shift**28
     )
 
-    p2 = (
-        pack_troop(squad.t1_16)
-        + pack_troop(squad.t2_1) * shift**2
-        + pack_troop(squad.t2_2) * shift**4
-        + pack_troop(squad.t2_3) * shift**6
-        + pack_troop(squad.t2_4) * shift**8
-        + pack_troop(squad.t2_5) * shift**10
-        + pack_troop(squad.t2_6) * shift**12
-        + pack_troop(squad.t2_7) * shift**14
-        + pack_troop(squad.t2_8) * shift**16
-        + pack_troop(squad.t3_1) * shift**18
-    )
-
-    return PackedSquad(p1, p2)
+    return packed
 
 
 def pack_troop(troop: Troop) -> int:
@@ -116,95 +97,9 @@ def assert_equal_squads(squadlike1, squadlike2):
 
 
 @pytest.mark.asyncio
-async def test_get_troop(s06_combat):
-    for idx, troop in enumerate(TROOPS):
-        tx = await s06_combat.get_troop(idx + 1).invoke()
-        assert troop == tx.result.t
-
-    with pytest.raises(StarkException):
-        await s06_combat.get_troop(0).invoke()
-
-    with pytest.raises(StarkException):
-        await s06_combat.get_troop(len(TROOPS) + 1).invoke()
-
-
-@pytest.mark.asyncio
-async def test_pack_troop(library_combat_tests):
-    tx = await library_combat_tests.test_pack_troop(GUARD).invoke()
-    assert tx.result.packed == pack_troop(GUARD)
-
-    wounded = Troop(TroopId.Guard, 1, 2, 2, 2, 6, 1, 2)
-    tx = await library_combat_tests.test_pack_troop(wounded).invoke()
-    assert tx.result.packed == pack_troop(wounded)
-
-
-@pytest.mark.asyncio
-async def test_unpack_troop(library_combat_tests):
-    for troop in TROOPS:
-        packed = pack_troop(troop)
-        tx = await library_combat_tests.test_unpack_troop(packed).invoke()
-        assert troop == tx.result.t
-
-    tx = await library_combat_tests.test_unpack_troop(0).invoke()
-    assert tx.result.t == (0, 0, 0, 0, 0, 0, 0, 0)
-
-
-@pytest.mark.asyncio
-async def test_compute_squad_stats(library_combat_tests):
-    squad = build_default_squad()
-    tx = await library_combat_tests.test_compute_squad_stats(squad).invoke()
-    stats = tx.result.stats
-
-    assert stats.agility == sum([t.agility for t in squad])
-    assert stats.attack == sum([t.attack for t in squad])
-    assert stats.defense == sum([t.defense for t in squad])
-    assert stats.vitality == sum([t.vitality for t in squad])
-    assert stats.wisdom == sum([t.wisdom for t in squad])
-
-
-@pytest.mark.asyncio
-async def test_compute_squad_vitality(library_combat_tests):
-    squad = build_default_squad()
-    tx = await library_combat_tests.test_compute_squad_vitality(squad).invoke()
-    assert tx.result.vitality == sum([t.vitality for t in squad])
-
-
-@pytest.mark.asyncio
-async def test_pack_squad(library_combat_tests):
-    squad = build_default_squad()
-    packed_squad = pack_squad(squad)
-    tx = await library_combat_tests.test_pack_squad(squad).invoke()
-    assert tx.result.p == packed_squad
-
-
-@pytest.mark.asyncio
-async def test_unpack_squad(library_combat_tests):
-    squad = build_default_squad()
-    packed_squad = pack_squad(squad)
-    tx = await library_combat_tests.test_unpack_squad(packed_squad).invoke()
-    assert_equal_squads(tx.result.s, squad)
-
-    squad = build_partial_squad(13)
-    packed_squad = pack_squad(squad)
-    tx = await library_combat_tests.test_unpack_squad(packed_squad).invoke()
-    assert_equal_squads(tx.result.s, squad)
-
-
-@pytest.mark.asyncio
-async def test_get_troop_population(library_combat_tests):
-    packed_squad = pack_squad(build_default_squad())
-    tx = await library_combat_tests.test_get_troop_population(packed_squad).invoke()
-    assert tx.result.population == 25
-
-    packed_squad = pack_squad(build_partial_squad(20))
-    tx = await library_combat_tests.test_get_troop_population(packed_squad).invoke()
-    assert tx.result.population == 20
-
-
-@pytest.mark.asyncio
 async def test_run_combat_loop(l06_combat_tests):
     attacker = build_default_squad()
-    defender = build_partial_squad(12)
+    defender = build_partial_squad(7)
 
     tx = await l06_combat_tests.test_run_combat_loop(attacker, defender, 1).invoke()
 
@@ -242,120 +137,9 @@ async def test_compute_min_roll_to_hit(l06_combat_tests):
 
 
 @pytest.mark.asyncio
-async def test_hit_squad(l06_combat_tests):
-    # default squad has a vitality of 144
-
-    # partial kill
-    squad = build_default_squad()
-    tx = await l06_combat_tests.test_hit_squad(squad, 100).invoke()
-    attacked = tx.result.squad
-    assert attacked.t1_1.vitality == 0
-    assert attacked.t1_16.vitality == 0
-    assert attacked.t2_1.vitality == 0
-    assert attacked.t2_4.vitality == 0
-    assert attacked.t2_5.vitality == 4
-    assert attacked.t3_1.vitality == 16
-
-    # full kill
-    squad = build_default_squad()
-    tx = await l06_combat_tests.test_hit_squad(squad, 144).invoke()
-    attacked = tx.result.squad
-    assert attacked.t1_1.vitality == 0
-    assert attacked.t1_16.vitality == 0
-    assert attacked.t2_1.vitality == 0
-    assert attacked.t2_8.vitality == 0
-    assert attacked.t3_1.vitality == 0
-
-
-@pytest.mark.asyncio
-async def test_hit_troop(l06_combat_tests):
-    # test full kill
-    tx = await l06_combat_tests.test_hit_troop(WATCHMAN, 27).invoke()
-    troop = Troop(*tx.result.hit_troop)
-    hits_left = tx.result.remaining_hits
-
-    assert troop == EMPTY_TROOP
-    assert hits_left == 27 - WATCHMAN.vitality
-
-    # test injury
-    tx = await l06_combat_tests.test_hit_troop(WATCHMAN, 2).invoke()
-    troop = Troop(*tx.result.hit_troop)
-    hits_left = tx.result.remaining_hits
-
-    hit_watchman = Troop(TroopId.Watchman, 1, 1, 1, 1, 3, 2, 1)
-    assert troop == hit_watchman
-    assert hits_left == 0
-
-    # test no hit
-    tx = await l06_combat_tests.test_hit_troop(WATCHMAN, 0).invoke()
-    troop = Troop(*tx.result.hit_troop)
-    hits_left = tx.result.remaining_hits
-
-    assert troop == WATCHMAN
-    assert hits_left == 0
-
-
-@pytest.mark.asyncio
-async def test_add_troop_to_squad(library_combat_tests):
-    partial_squad = build_partial_squad(3)
-
-    # add a tier 1
-    tx = await library_combat_tests.test_add_troop_to_squad(SCORPIO, partial_squad).invoke()
-    assert tx.result.updated.t1_4 == SCORPIO
-
-    # add a tier 2
-    tx = await library_combat_tests.test_add_troop_to_squad(KNIGHT, partial_squad).invoke()
-    assert tx.result.updated.t2_1 == KNIGHT
-
-    # add a tier 3
-    tx = await library_combat_tests.test_add_troop_to_squad(ARCANIST, partial_squad).invoke()
-    assert tx.result.updated.t3_1 == ARCANIST
-
-    # adding to a full squad should fail
-    with pytest.raises(StarkException):
-        squad = build_default_squad()
-        await library_combat_tests.test_add_troop_to_squad(GUARD, squad).invoke()
-
-
-@pytest.mark.asyncio
-async def test_remove_troop_from_squad(library_combat_tests):
-    squad = build_default_squad()
-
-    for troop_idx in range(len(squad)):
-        tx = await library_combat_tests.test_remove_troop_from_squad(troop_idx, squad).invoke()
-        modified_squad = tx.result.updated
-
-        for idx in range(len(squad)):
-            if idx == troop_idx:
-                assert modified_squad[idx] == EMPTY_TROOP
-            else:
-                assert_equal_troops(modified_squad[idx], squad[idx])
-
-
-@pytest.mark.asyncio
-async def test_find_first_free_troop_slot_in_squad(library_combat_tests):
-    troop_size = 8  # Cairo's Troop.SIZE, also the number of elements in Troop
-    for i in range(25):
-        partial_squad = build_partial_squad(i)
-        tier = 1
-        if i >= 16:
-            tier = 2
-        if i == 24:
-            tier = 3
-
-        tx = await library_combat_tests.test_find_first_free_troop_slot_in_squad(partial_squad, tier).invoke()
-        assert tx.result.free_slot_index == i * troop_size
-
-    full_squad = build_default_squad()
-    for tier in [1, 2, 3]:
-        with pytest.raises(StarkException):
-            await library_combat_tests.test_find_first_free_troop_slot_in_squad(full_squad, tier).invoke()
-
-
-@pytest.mark.asyncio
 async def test_update_squad_in_realm(s06_combat):
     realm_id = (1, 0)
-    packed_empty_squad = PackedSquad(0, 0)
+    packed_empty_squad = 0
     default_squad = build_default_squad()
     packed_default_squad = pack_squad(default_squad)
 
@@ -392,38 +176,6 @@ async def test_get_set_troop_cost(s06_combat):
         await s06_combat.set_troop_cost(troop_id, troop_cost).invoke()
         tx = await s06_combat.get_troop_cost(troop_id).invoke()
         assert tx.result.cost == troop_cost
-
-
-@pytest.mark.asyncio
-async def test_add_troops_to_squad(library_combat_tests):
-    empty_squad = build_empty_squad()
-    squad = build_default_squad()
-    troop_ids = [TroopId.Watchman] * 16 + [TroopId.Guard] * 8 + [TroopId.GuardCaptain]
-    tx = await library_combat_tests.test_add_troops_to_squad(empty_squad, troop_ids).invoke()
-    assert_equal_squads(tx.result.squad, squad)
-
-    current_squad = build_partial_squad(4)
-    squad = build_partial_squad(8)
-    troop_ids = [TroopId.Watchman] * 4
-    tx = await library_combat_tests.test_add_troops_to_squad(current_squad, troop_ids).invoke()
-    assert_equal_squads(tx.result.squad, squad)
-
-
-@pytest.mark.asyncio
-async def test_remove_troops_from_squad(library_combat_tests):
-    squad = build_default_squad()
-    idxs = [0, 15, 16, 24]  # t1_1, t1_16, t2_1, t3_1
-    tx = await library_combat_tests.test_remove_troops_from_squad(squad, idxs).invoke()
-    updated_squad = tx.result.squad
-
-    for idx in range(len(squad)):
-        if idx in idxs:
-            assert updated_squad[idx] == EMPTY_TROOP
-        else:
-            assert_equal_troops(updated_squad[idx], squad[idx])
-
-    with pytest.raises(StarkException):
-        await library_combat_tests.test_remove_troops_from_squad(squad, [len(squad) + 1]).invoke()
 
 
 # even though this tests a func in utils, it is
