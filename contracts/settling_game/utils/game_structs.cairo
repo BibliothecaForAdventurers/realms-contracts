@@ -161,6 +161,7 @@ namespace ModuleIds:
     const L07_Crypts = 7
     const L08_Crypts_Resources = 8
     const L09_Relics = 12
+    const L10_Food = 13
 end
 
 namespace ExternalContractIds:
@@ -239,7 +240,9 @@ namespace ResourceIds:
     # IMPORTANT: if you're adding to this enum
     # make sure the SIZE is one greater than the
     # maximal value; certain algorithms depend on that
-    const SIZE = 29
+    const wheat = 10000
+    const fish = 10001
+    const SIZE = 31
 end
 
 namespace TroopId:
@@ -369,4 +372,10 @@ struct PackedBuildings:
     member military : felt
     member economic : felt
     member housing : felt
+end
+
+# Farm Harvest Types
+namespace HarvestType:
+    const Export = 1
+    const Store = 2
 end

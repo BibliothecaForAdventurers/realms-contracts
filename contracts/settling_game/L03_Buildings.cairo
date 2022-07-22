@@ -18,6 +18,8 @@ from openzeppelin.token.erc20.interfaces.IERC20 import IERC20
 from openzeppelin.upgrades.library import Proxy
 
 from contracts.settling_game.library.library_buildings import Buildings
+from contracts.settling_game.library.library_resources import Resources
+
 from contracts.settling_game.utils.general import unpack_data, transform_costs_to_token_ids_values
 from contracts.settling_game.utils.game_structs import (
     RealmBuildings,
@@ -124,7 +126,7 @@ func build{
         contract_address=realms_address, token_id=token_id
     )
 
-    let (realm_buildings_integrity : RealmBuildings) = get_buildings_integrity_unpacked(token_id)
+    let (realm_buildings_integrity : RealmBuildings) = get_effective_buildings(token_id)
 
     # Check Area, revert if no space available
     let (can_build) = Buildings.can_build(
@@ -135,18 +137,40 @@ func build{
         assert_not_zero(can_build)
     end
 
+    with_attr error_message("Buildings: QTY must be greater than 0"):
+        assert_not_zero(quantity)
+    end
+
     # Build buildings and set state
     build_buildings(token_id, building_id, quantity, realms_data)
 
-    # GET BUILDING COSTS
-    # TODO: Add exponential cost function into X buildings
-    # @milan
-    let (building_cost : Cost, lords : Uint256) = get_building_cost(building_id)
+    # Workhuts have a fixed cost according to the Realms resources
+    if building_id == RealmBuildingsIds.House:
+        let (
+            resource_id_len, resource_ids, resource_values_len, resource_values
+        ) = get_workhut_costs(realms_data, quantity)
 
-    let (token_len, token_ids, token_values) = Buildings.calculate_building_cost(building_cost)
-
-    # BURN RESOURCES
-    IERC1155.burnBatch(resource_address, caller, token_len, token_ids, token_len, token_values)
+        IERC1155.burnBatch(
+            resource_address,
+            caller,
+            resource_id_len,
+            resource_ids,
+            resource_id_len,
+            resource_values,
+        )
+        tempvar syscall_ptr = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar bitwise_ptr = bitwise_ptr
+    else:
+        let (building_cost : Cost, lords : Uint256) = get_building_cost(building_id)
+        let (token_len, token_ids, token_values) = Buildings.calculate_building_cost(building_cost)
+        IERC1155.burnBatch(resource_address, caller, token_len, token_ids, token_len, token_values)
+        tempvar syscall_ptr = syscall_ptr
+        tempvar range_check_ptr = range_check_ptr
+        tempvar pedersen_ptr = pedersen_ptr
+        tempvar bitwise_ptr = bitwise_ptr
+    end
 
     # EMIT
     # TODO: Emit left, do calculation in client
@@ -198,38 +222,22 @@ end
 # Getters
 # -----------------------------------
 
-# TODO: Deprecate or keep? It is a permanent record of how many buildings have been built
+# @notice Get Workhut costs
+# @param token_id: Staked realm token id
 @view
-func get_buildings_unpacked{
+func get_workhut_costs{
     syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
-}(token_id : Uint256) -> (realm_buildings : RealmBuildings):
+}(realms_data : RealmData, quantity : felt) -> (
+    resource_ids_len : felt,
+    resource_ids : Uint256*,
+    resource_values_len : felt,
+    resource_values : Uint256*,
+):
     alloc_locals
 
-    let (data) = get_storage_realm_buildings(token_id)
+    let (ids, values) = Resources.workhut_costs(realms_data, quantity)
 
-    let (House) = unpack_data(data, 0, 63)
-    let (StoreHouse) = unpack_data(data, 6, 63)
-    let (Granary) = unpack_data(data, 12, 63)
-    let (Farm) = unpack_data(data, 18, 63)
-    let (FishingVillage) = unpack_data(data, 24, 63)
-    let (Barracks) = unpack_data(data, 30, 63)
-    let (MageTower) = unpack_data(data, 36, 63)
-    let (ArcherTower) = unpack_data(data, 42, 63)
-    let (Castle) = unpack_data(data, 48, 63)
-
-    return (
-        realm_buildings=RealmBuildings(
-        House=House,
-        StoreHouse=StoreHouse,
-        Granary=Granary,
-        Farm=Farm,
-        FishingVillage=FishingVillage,
-        Barracks=Barracks,
-        MageTower=MageTower,
-        ArcherTower=ArcherTower,
-        Castle=Castle
-        ),
-    )
+    return (realms_data.resource_number, ids, realms_data.resource_number, values)
 end
 
 @view
@@ -240,7 +248,9 @@ func get_buildings_integrity_unpacked{
 
     let (buildings_) = buildings_integrity.read(token_id)
 
-    return Buildings.unpack_buildings(buildings_)
+    let (unpacked) = Buildings.unpack_buildings(buildings_)
+
+    return (unpacked)
 end
 
 @view
@@ -325,4 +335,38 @@ func set_building_cost{range_check_ptr, syscall_ptr : felt*, pedersen_ptr : Hash
     building_cost.write(building_id, cost)
     building_lords_cost.write(building_id, lords)
     return ()
+end
+
+# TODO: Deprecate or keep? It is a permanent record of how many buildings have been built
+@view
+func get_buildings_unpacked{
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(token_id : Uint256) -> (realm_buildings : RealmBuildings):
+    alloc_locals
+
+    let (data) = get_storage_realm_buildings(token_id)
+
+    let (House) = unpack_data(data, 0, 63)
+    let (StoreHouse) = unpack_data(data, 6, 63)
+    let (Granary) = unpack_data(data, 12, 63)
+    let (Farm) = unpack_data(data, 18, 63)
+    let (FishingVillage) = unpack_data(data, 24, 63)
+    let (Barracks) = unpack_data(data, 30, 63)
+    let (MageTower) = unpack_data(data, 36, 63)
+    let (ArcherTower) = unpack_data(data, 42, 63)
+    let (Castle) = unpack_data(data, 48, 63)
+
+    return (
+        realm_buildings=RealmBuildings(
+        House=House,
+        StoreHouse=StoreHouse,
+        Granary=Granary,
+        Farm=Farm,
+        FishingVillage=FishingVillage,
+        Barracks=Barracks,
+        MageTower=MageTower,
+        ArcherTower=ArcherTower,
+        Castle=Castle
+        ),
+    )
 end

@@ -129,7 +129,7 @@ func calculate_population{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, rang
     # TROOP POPULATION
     let (troop_population) = calculate_troop_population(token_id)
 
-    let (realm_population) = Calculator.calculate_food(current_buildings, troop_population)
+    let (realm_population) = Calculator.calculate_population(current_buildings, troop_population)
 
     return (realm_population)
 end

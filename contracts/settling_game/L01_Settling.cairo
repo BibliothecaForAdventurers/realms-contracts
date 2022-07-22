@@ -271,6 +271,6 @@ end
 # @return realms_settled: Total amount of realms settled
 @view
 func get_total_realms_settled{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    ) -> (realms_settled : felt):
+    ) -> (amount : felt):
     return total_realms_settled.read()
 end

@@ -131,10 +131,9 @@ const MAX_WALL_DEFENSE_HIT_POINTS = 5
 
 @external
 func initializer{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    address_of_controller : felt, xoroshiro_addr : felt, proxy_admin : felt
+    address_of_controller : felt, proxy_admin : felt
 ):
     Module.initializer(address_of_controller)
-    xoroshiro_address.write(xoroshiro_addr)
     Proxy.initializer(proxy_admin)
     return ()
 end

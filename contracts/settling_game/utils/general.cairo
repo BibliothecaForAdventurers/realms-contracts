@@ -231,3 +231,18 @@ func sum_values_by_key_loop{range_check_ptr}(
 
     return sum_values_by_key_loop(dict, len - 1, keys + 1, values + 1)
 end
+
+# calculates cost and returns
+func calculate_cost{
+    syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*
+}(cost : Cost) -> (token_len : felt, token_ids : Uint256*, token_values : Uint256*):
+    alloc_locals
+
+    let (costs : Cost*) = alloc()
+    assert [costs] = cost
+    let (token_ids : Uint256*) = alloc()
+    let (token_values : Uint256*) = alloc()
+
+    let (token_len) = transform_costs_to_token_ids_values(1, costs, token_ids, token_values)
+    return (token_len, token_ids, token_values)
+end

@@ -22,7 +22,7 @@ def send_multi(self, to, method, calldata, nonce=None):
         sender=self.address,
         calls=[[target_address, method, c] for c in calldata],
         nonce=nonce,
-        max_fee=int(os.environ["MAX_FEE"]),
+        max_fee='8989832783197500',
     )
 
     params = []
@@ -39,7 +39,7 @@ def send_multi(self, to, method, calldata, nonce=None):
         params=params,
         network=self.network,
         signature=[str(sig_r), str(sig_s)],
-        max_fee=int(os.environ["MAX_FEE"]),
+        max_fee='8989832783197500',
     )
 
 
@@ -183,5 +183,17 @@ def compile(contract_alias) -> str:
         "nile",
         "compile",
         contract_alias,
+    ]
+    return subprocess.check_output(command).strip().decode("utf-8")
+
+
+def declare(contract_name, alias) -> str:
+    """Nile declare function."""
+    command = [
+        "nile",
+        "declare",
+        contract_name,
+        "--alias",
+        alias,
     ]
     return subprocess.check_output(command).strip().decode("utf-8")

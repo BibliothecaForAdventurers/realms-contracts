@@ -1,6 +1,16 @@
 [![Discord](https://badgen.net/badge/icon/discord?icon=discord&label)](https://discord.gg/uQnjZhZPfu)
 [![Twitter](https://badgen.net/badge/icon/twitter?icon=twitter&label)](https://twitter.com/LootRealms)
 
+<!-- badges -->
+<p>
+  <a href="https://starkware.co/">
+    <img src="https://img.shields.io/badge/powered_by-StarkWare-navy">
+  </a>
+  <a href="https://github.com/dontpanicdao/starknet-burner/blob/main/LICENSE/">
+    <img src="https://img.shields.io/badge/license-MIT-black">
+  </a>
+</p>
+
 ![Realms x Bibliotheca header](/static/realmsxbibliotheca.jpg)
 
 # 📝 Realms Contracts

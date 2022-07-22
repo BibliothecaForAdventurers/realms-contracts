@@ -74,7 +74,8 @@ cairo-nile = "^0.5.0"
 
 #-----------BUILDINGS
 "build" = "realms_cli.player.buildings.build"
-"get_buildings" = "realms_cli.player.buildings.get_buildings"
+"buildings" = "realms_cli.player.buildings.buildings"
+"buildings_integrity" = "realms_cli.player.buildings.buildings_integrity"
 
 #-----------RESOURCES
 "check_resources" = "realms_cli.player.resources.check_resources"

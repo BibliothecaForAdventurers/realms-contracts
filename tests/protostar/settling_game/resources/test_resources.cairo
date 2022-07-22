@@ -23,6 +23,7 @@ from contracts.settling_game.utils.constants import (
     BASE_LORDS_PER_DAY,
     PILLAGE_AMOUNT,
     MAX_DAYS_ACCURED,
+    WORK_HUT_OUTPUT,
 )
 
 from contracts.settling_game.utils.game_structs import RealmData
@@ -33,6 +34,7 @@ from tests.protostar.settling_game.test_structs import (
     TEST_HAPPINESS,
     TEST_DAYS,
     TEST_MINT_PERCENTAGE,
+    TEST_WORK_HUTS,
 )
 
 @external
@@ -137,11 +139,11 @@ func test_calculate_resource_output{
 }():
     alloc_locals
 
-    let (value) = Resources._calculate_resource_output(TEST_HAPPINESS)
+    let (value) = Resources._calculate_resource_output(TEST_WORK_HUTS, TEST_HAPPINESS)
 
     let (production_output, _) = unsigned_div_rem(BASE_RESOURCES_PER_DAY * TEST_HAPPINESS, 100)
 
-    assert value = production_output
+    assert value = production_output + TEST_WORK_HUTS * WORK_HUT_OUTPUT
 
     return ()
 end
@@ -170,7 +172,7 @@ func test_calculate_total_mintable_resources{
     )
 
     let (resource_mint : Uint256*) = Resources._calculate_total_mintable_resources(
-        TEST_HAPPINESS, realmData, TEST_DAYS, TEST_MINT_PERCENTAGE
+        TEST_WORK_HUTS, TEST_HAPPINESS, realmData, TEST_DAYS, TEST_MINT_PERCENTAGE
     )
 
     let resource_1 = resource_mint[0].low

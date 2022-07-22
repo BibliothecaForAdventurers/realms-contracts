@@ -24,10 +24,9 @@ from contracts.token.library import ERC1155
 
 @external
 func initializer{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-    name : felt, symbol : felt, proxy_admin : felt
+    uri : felt, proxy_admin : felt
 ):
-    ERC721.initializer(name, symbol)
-    ERC721_Enumerable.initializer()
+    ERC1155.initializer(uri)
     Ownable.initializer(proxy_admin)
     Proxy.initializer(proxy_admin)
     return ()
@@ -171,55 +170,5 @@ func burnBatch{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr
         assert_not_zero(caller)
     end
     ERC1155._burn_batch(from_, ids_len, ids, amounts_len, amounts)
-    return ()
-end
-#
-# Bibliotheca added methods
-#
-
-@storage_var
-func Module_access() -> (address : felt):
-end
-
-@external
-func Set_module_access{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
-    address : felt
-):
-    Ownable_only_owner()
-    Module_access.write(address)
-    return ()
-end
-
-func check_caller{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> (
-    value : felt
-):
-    let (address) = Module_access.read()
-    let (caller) = get_caller_address()
-
-    if address == caller:
-        return (1)
-    end
-
-    return (0)
-end
-
-func check_owner{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}() -> (
-    value : felt
-):
-    let (caller) = get_caller_address()
-    let (owner) = Ownable_get_owner()
-
-    if caller == owner:
-        return (1)
-    end
-
-    return (0)
-end
-
-func check_can_action{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}():
-    let (caller) = check_caller()
-    let (owner) = check_owner()
-
-    assert_not_zero(owner + caller)
     return ()
 end

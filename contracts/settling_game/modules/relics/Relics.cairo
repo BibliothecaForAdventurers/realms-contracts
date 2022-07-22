@@ -10,10 +10,10 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.uint256 import Uint256, uint256_eq
 
-from contracts.settling_game.utils.constants import TRUE
+from starkware.cairo.common.bool import TRUE
 from contracts.settling_game.library.library_module import Module
 
-from contracts.settling_game.library.library_relic import Relics
+from contracts.settling_game.modules.relics.library import Relics
 from openzeppelin.upgrades.library import Proxy
 
 # -----------------------------------

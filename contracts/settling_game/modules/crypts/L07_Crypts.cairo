@@ -12,11 +12,13 @@ from starkware.starknet.common.syscalls import (
     get_contract_address,
 )
 from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.bool import TRUE
+
 from openzeppelin.upgrades.library import Proxy
 from openzeppelin.token.erc721.interfaces.IERC721 import IERC721
 
 from contracts.settling_game.utils.game_structs import ModuleIds, ExternalContractIds
-from contracts.settling_game.utils.constants import TRUE
+
 from contracts.settling_game.library.library_module import Module
 from contracts.settling_game.interfaces.s_crypts_IERC721 import s_crypts_IERC721
 from contracts.settling_game.interfaces.imodules import IModuleController, IL08_Crypts_Resources

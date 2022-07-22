@@ -178,14 +178,14 @@ end
 func mint{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(
     to : felt, tokenId : Uint256
 ):
-    Ownable.assert_only_owner()
+    check_can_action()
     ERC721_Enumerable._mint(to, tokenId)
     return ()
 end
 
 @external
 func burn{pedersen_ptr : HashBuiltin*, syscall_ptr : felt*, range_check_ptr}(tokenId : Uint256):
-    ERC721.assert_only_token_owner(tokenId)
+    check_can_action()
     ERC721_Enumerable._burn(tokenId)
     return ()
 end

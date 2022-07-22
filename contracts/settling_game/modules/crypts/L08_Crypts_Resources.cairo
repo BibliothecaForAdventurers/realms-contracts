@@ -10,7 +10,11 @@ from starkware.cairo.common.math_cmp import is_le
 from starkware.cairo.common.alloc import alloc
 from starkware.starknet.common.syscalls import get_caller_address, get_block_timestamp
 from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.bool import TRUE, FALSE
+
 from openzeppelin.upgrades.library import Proxy
+from openzeppelin.token.erc721.interfaces.IERC721 import IERC721
+
 from contracts.settling_game.utils.game_structs import (
     CryptData,
     ModuleIds,
@@ -18,16 +22,9 @@ from contracts.settling_game.utils.game_structs import (
     EnvironmentProduction,
 )
 
-from contracts.settling_game.utils.constants import (
-    TRUE,
-    FALSE,
-    DAY,
-    RESOURCES_PER_CRYPT,
-    LEGENDARY_MULTIPLIER,
-)
+from contracts.settling_game.utils.constants import DAY, RESOURCES_PER_CRYPT, LEGENDARY_MULTIPLIER
 from contracts.settling_game.library.library_module import Module
 
-from openzeppelin.token.erc721.interfaces.IERC721 import IERC721
 from contracts.settling_game.interfaces.IERC1155 import IERC1155
 from contracts.settling_game.interfaces.crypts_IERC721 import crypts_IERC721
 from contracts.settling_game.interfaces.imodules import IModuleController, IL07_Crypts

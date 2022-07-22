@@ -77,6 +77,7 @@ def settle(realm_token_id, network):
         arguments=calldata
     )
 
+
 @click.command()
 @click.argument("realm_token_id", nargs=1)
 @click.option("--network", default="goerli")
@@ -106,7 +107,7 @@ def unsettle(realm_token_id, network):
 @click.option("--network", default="goerli")
 def set_realm_data(realm_token_id, network):
     """
-    Set Realm data
+    Set realm data
     """
     config = Config(nile_network=network)
 
@@ -189,7 +190,7 @@ def check_owner_of_realm(realm_token_id, network):
         function="ownerOf",
         arguments=[realm_token_id, 0],
     )
-    print('Ser, owner of realm id: '+ realm_token_id + " is " + out)
+    print('Ser, owner of realm id: ' + realm_token_id + " is " + out)
 
 
 @click.command()
@@ -197,7 +198,7 @@ def check_owner_of_realm(realm_token_id, network):
 @click.option("--network", default="goerli")
 def check_owner_of_s_realm(realm_token_id, network):
     """
-    Check owner of Realm
+    Check owner of S Realm
     """
     config = Config(nile_network=network)
 
@@ -207,7 +208,7 @@ def check_owner_of_s_realm(realm_token_id, network):
         function="ownerOf",
         arguments=[realm_token_id, 0],
     )
-    print('Ser, owner of settled realm id: '+ realm_token_id + " is " + out)
+    print('Ser, owner of settled realm id: ' + realm_token_id + " is " + out)
 
 
 @click.command()
@@ -226,6 +227,7 @@ def get_realm_data(realm_token_id, network):
         arguments=[realm_token_id, 0],
     )
     print(out)
+
 
 @click.command()
 @click.option("--address", default="", help="Account address in hex format 0x...")

@@ -1,22 +1,25 @@
 import struct
 from typing import List
 
+
 def print_over_colums(array_of_strings, cols=2, width=40):
     """Takes in an array of strings and prints the content over a
      number of colums."""
     ans = ""
     for i, text in enumerate(array_of_strings):
-        if i%cols == 0:
+        if i % cols == 0:
             ans += "\n"
         ans += f"| {text.ljust(width)} "
     print(ans)
 
+
 def uint(a):
     return(a, 0)
 
+
 def parse_multi_input(cli_input) -> List:
     """Parse input and check for multiple args
-    
+
     1-4   -> [1,2,3,4]
     1,2,5 -> [1,2,5]
     1     -> [1]
@@ -32,6 +35,7 @@ def parse_multi_input(cli_input) -> List:
         return [int(word) for word in words]
     return [cli_input]
 
+
 def str_to_felt(text: str) -> int:
     b_text = bytes(text, "ascii")
     return int.from_bytes(b_text, "big")
@@ -45,12 +49,11 @@ def felt_to_str(felt: int) -> str:
 def pack_values(values: list) -> int:
     return int.from_bytes(struct.pack(f"<{len(values)}b", *values), "little")
 
-def uint(a):
-    return(a, 0)
 
 def uint_decimal(a):
     x = int(a) * 10 ** 18
     return(x, 0)
+
 
 def expanded_uint_list(arr):
     """
@@ -58,11 +61,13 @@ def expanded_uint_list(arr):
     """
     return list(sum([uint(a) for a in arr], ()))
 
+
 def expanded_uint_list_decimals(arr):
     """
     Convert array of ints into flattened array of uints.
     """
     return list(sum([uint_decimal(a) for a in arr], ()))
+
 
 def from_bn(a):
     """

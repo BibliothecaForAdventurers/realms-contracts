@@ -27,7 +27,7 @@ from starkware.cairo.common.math import assert_not_zero
 from starkware.starknet.common.syscalls import get_caller_address
 from contracts.settling_game.utils.game_structs import ModuleIds, ExternalContractIds
 from starkware.starknet.common.syscalls import get_block_timestamp
-from contracts.settling_game.utils.constants import TRUE, FALSE
+from starkware.cairo.common.bool import TRUE, FALSE
 
 # -----------------------------------
 # Storage
@@ -82,8 +82,6 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     _realms_address : felt,
     _treasury_address : felt,
     _s_realms_address : felt,
-    _crypts_address : felt,
-    _s_crypts_address : felt,
 ):
     arbiter.write(arbiter_address)
 
@@ -108,18 +106,18 @@ func constructor{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_p
     # # combat can write to settling
     can_write_to.write(ModuleIds.L06_Combat, ModuleIds.L01_Settling, TRUE)
 
-    # crypts logic to resources
-    can_write_to.write(ModuleIds.L07_Crypts, ModuleIds.L08_Crypts_Resources, TRUE)
+    # # crypts logic to resources
+    # can_write_to.write(ModuleIds.L07_Crypts, ModuleIds.L08_Crypts_Resources, TRUE)
 
-    # resources logic to crypts state
-    can_write_to.write(ModuleIds.L08_Crypts_Resources, ModuleIds.L07_Crypts, TRUE)
+    # # resources logic to crypts state
+    # can_write_to.write(ModuleIds.L08_Crypts_Resources, ModuleIds.L07_Crypts, TRUE)
 
     # Lookup table for NON module contracts
     external_contract_table.write(ExternalContractIds.Lords, _lords_address)
     external_contract_table.write(ExternalContractIds.Realms, _realms_address)
     external_contract_table.write(ExternalContractIds.S_Realms, _s_realms_address)
-    external_contract_table.write(ExternalContractIds.Crypts, _crypts_address)
-    external_contract_table.write(ExternalContractIds.S_Crypts, _s_crypts_address)
+    # external_contract_table.write(ExternalContractIds.Crypts, _crypts_address)
+    # external_contract_table.write(ExternalContractIds.S_Crypts, _s_crypts_address)
     external_contract_table.write(ExternalContractIds.Resources, _resources_address)
     external_contract_table.write(ExternalContractIds.Treasury, _treasury_address)
 
@@ -179,8 +177,6 @@ func set_initial_module_addresses{
     module_04_addr : felt,
     module_05_addr : felt,
     module_06_addr : felt,
-    module_07_addr : felt,
-    module_08_addr : felt,
 ):
     only_arbiter()
 
@@ -208,13 +204,13 @@ func set_initial_module_addresses{
     address_of_module_id.write(ModuleIds.L06_Combat, module_06_addr)
     module_id_of_address.write(module_06_addr, ModuleIds.L06_Combat)
 
-    # Crypts Logic
-    address_of_module_id.write(ModuleIds.L07_Crypts, module_07_addr)
-    module_id_of_address.write(module_07_addr, ModuleIds.L07_Crypts)
+    # # Crypts Logic
+    # address_of_module_id.write(ModuleIds.L07_Crypts, module_07_addr)
+    # module_id_of_address.write(module_07_addr, ModuleIds.L07_Crypts)
 
-    # Crypts Resources Logic
-    address_of_module_id.write(ModuleIds.L08_Crypts_Resources, module_08_addr)
-    module_id_of_address.write(module_08_addr, ModuleIds.L08_Crypts_Resources)
+    # # Crypts Resources Logic
+    # address_of_module_id.write(ModuleIds.L08_Crypts_Resources, module_08_addr)
+    # module_id_of_address.write(module_08_addr, ModuleIds.L08_Crypts_Resources)
 
     return ()
 end
@@ -263,7 +259,7 @@ end
 # @return genesis_time: Genesis time
 @view
 func get_genesis{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-    genesis_time : felt
+    time : felt
 ):
     return genesis.read()
 end
@@ -272,7 +268,7 @@ end
 # @return Arbiter address
 @view
 func get_arbiter{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}() -> (
-    arbiter_address : felt
+    address : felt
 ):
     return arbiter.read()
 end

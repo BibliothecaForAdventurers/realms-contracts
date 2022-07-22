@@ -9,7 +9,7 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.starknet.common.syscalls import get_block_timestamp
 from starkware.cairo.common.uint256 import Uint256, uint256_eq
-from contracts.settling_game.utils.constants import TRUE
+from starkware.cairo.common.bool import TRUE
 
 namespace Relics:
     # @notice gets current relic holder

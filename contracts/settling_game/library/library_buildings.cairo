@@ -125,7 +125,7 @@ namespace Buildings:
         let (length) = integrity_length(building_id)
 
         # We add length twice so that there is more than 1 building length
-        return (block_timestamp + length * quantity + length)
+        return (length * quantity + length)
     end
 
     func integrity_length{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
@@ -151,7 +151,7 @@ namespace Buildings:
 
     # Gets raw building time left of building on realm. This is only used for precalulations
     func get_base_building_left{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        time_balance : felt, time_stamp : felt
+        time_balance : felt, time_stamp : felt, building_id : felt
     ) -> (buildings : felt, time_left : felt):
         alloc_locals
 
@@ -163,7 +163,9 @@ namespace Buildings:
             return (0, 0)
         end
 
-        let (buildings_left, _) = unsigned_div_rem(time_left, 10000)
+        let (length) = integrity_length(building_id)
+
+        let (buildings_left, _) = unsigned_div_rem(time_left, length)
 
         return (buildings_left, time_left)
     end
@@ -232,17 +234,19 @@ namespace Buildings:
 
     # Gets effective buildings on Realm
     func get_effective_buildings{syscall_ptr : felt*, pedersen_ptr : HashBuiltin*, range_check_ptr}(
-        time_balance : felt
+        time_balance : felt, building_id : felt
     ) -> (buildings : felt):
         alloc_locals
 
         # TODO: log function
-        let (effective_buildings) = findPowLarger(2, 0, 1, time_balance)
+        # let (effective_buildings) = findPowLarger(2, 0, 1, time_balance)
+
+        let (length) = integrity_length(building_id)
 
         # TODO: REMOVE this should be made redundent in favour of the log but log is not working
-        # let (buildings_left, _) = unsigned_div_rem(time_balance, 10000)
+        let (buildings_left, _) = unsigned_div_rem(time_balance, length)
 
-        return (time_balance)
+        return (buildings_left)
     end
 
     # Effective building time calc
@@ -268,7 +272,7 @@ namespace Buildings:
         alloc_locals
 
         let (base_building_number, time_left) = get_base_building_left(
-            time_balance, block_timestamp
+            time_balance, block_timestamp, building_id
         )
 
         let (decay_slope) = get_decay_slope(building_id)
@@ -279,7 +283,7 @@ namespace Buildings:
         # pass actual time balance + decay rate
         let (effective_building_time) = get_decayed_building_time(time_left, decay_rate)
 
-        let (effective_buildings) = get_effective_buildings(effective_building_time)
+        let (effective_buildings) = get_effective_buildings(effective_building_time, building_id)
 
         return (effective_buildings)
     end
@@ -317,9 +321,12 @@ namespace Buildings:
         )
     end
 
-    func pack_buildings(unpacked_buildings : RealmBuildings) -> (
-        packed_buildings : PackedBuildings
-    ):
+    func pack_buildings{
+        syscall_ptr : felt*,
+        pedersen_ptr : HashBuiltin*,
+        range_check_ptr,
+        bitwise_ptr : BitwiseBuiltin*,
+    }(unpacked_buildings : RealmBuildings) -> (packed_buildings : PackedBuildings):
         # Housing
         let House = unpacked_buildings.House * SHIFT_41._1
 

@@ -1,6 +1,8 @@
 # First, import click dependency
 import click
 
+from nile.core.declare import declare
+
 from realms_cli.caller_invoker import wrapped_call, wrapped_send, compile, deploy
 from realms_cli.config import Config, strhex_as_strfelt, safe_load_deployment
 from realms_cli.shared import uint
@@ -35,6 +37,8 @@ def upgrade_module(module_name, network):
     Upgrades Module
     """
 
+    config = Config(nile_network=network)
+
     # REMOVES LINE FROM TXT FILE
     with open("goerli.deployments.txt", "r+") as f:
         new_f = f.readlines()
@@ -44,7 +48,13 @@ def upgrade_module(module_name, network):
                 f.write(line)
         f.truncate()
 
-    config = Config(nile_network=network)
+    with open("goerli.declarations.txt", "r+") as f:
+        new_f = f.readlines()
+        f.seek(0)
+        for line in new_f:
+            if module_name not in line:
+                f.write(line)
+        f.truncate()
 
     compile(contract_alias="contracts/settling_game/" + module_name + ".cairo")
 
@@ -53,7 +63,9 @@ def upgrade_module(module_name, network):
         alias=module_name
     )
 
-    module, _ = safe_load_deployment(module_name, network)
+    module = declare(module_name, network, module_name)
+
+    print(module)
 
     wrapped_send(
         network=config.nile_network,
